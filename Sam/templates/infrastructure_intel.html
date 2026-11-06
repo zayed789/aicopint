@@ -1,0 +1,758 @@
+{% extends "base.html" %}
+
+{% block title %}OSINT Portal — Infrastructure Intel{% endblock %}
+
+{% block extra_css %}
+    .infra-card {
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        margin-bottom: 1.25rem;
+        overflow: hidden;
+    }
+    .infra-card-header {
+        background: linear-gradient(135deg, #062952 0%, #0c3f7b 100%);
+        color: #fff;
+        padding: 0.85rem 1.25rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .infra-card-header h3 { margin: 0; font-size: 1rem; font-weight: 600; }
+    .infra-card-body { padding: 1rem 1.25rem; }
+    .intel-kv { display: flex; gap: 0.4rem; margin-bottom: 0.35rem; align-items: baseline; }
+    .intel-kv strong { color: #062952; min-width: 9rem; font-size: 0.8rem; flex-shrink: 0; }
+    .intel-kv span  { font-size: 0.82rem; color: #374151; word-break: break-all; }
+    .badge-critical { background: #dc2626 !important; }
+    .badge-high     { background: #d97706 !important; }
+    .badge-medium   { background: #0891b2 !important; }
+    .badge-low      { background: #64748b !important; }
+    .port-chip {
+        display: inline-block;
+        background: #e8f0fa;
+        color: #062952;
+        border-radius: 6px;
+        padding: 0.2rem 0.55rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin: 0.15rem;
+        font-family: monospace;
+    }
+    .tech-chip {
+        display: inline-block;
+        background: #f0fdf4;
+        color: #166534;
+        border: 1px solid #bbf7d0;
+        border-radius: 6px;
+        padding: 0.2rem 0.55rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        margin: 0.15rem;
+    }
+    .tag-chip {
+        display: inline-block;
+        background: #ede9fe;
+        color: #5b21b6;
+        border-radius: 6px;
+        padding: 0.15rem 0.45rem;
+        font-size: 0.72rem;
+        font-weight: 600;
+        margin: 0.1rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+    .infra-map-frame { height: 220px; border-radius: 8px; border: 0; width: 100%; display: block; }
+    .infra-wrap { max-width: 960px; margin: 0 auto; }
+    .scan-hero {
+        background: #fff;
+        border: 1px solid #d3deef;
+        border-radius: 14px;
+        box-shadow: 0 4px 16px rgba(6,41,82,.07);
+        overflow: hidden;
+        margin-bottom: 2rem;
+    }
+    .scan-hero-head {
+        background: linear-gradient(90deg, var(--navy), #0c3f7b);
+        padding: 0.85rem 1.25rem;
+        color: #fff;
+    }
+    .scan-hero-head h1 { font-size: 1.1rem; font-weight: 700; margin: 0 0 0.15rem; }
+    .scan-hero-head p  { font-size: 0.82rem; opacity: 0.72; margin: 0; }
+    .scan-hero-body { padding: 1.1rem 1.25rem; }
+    .infra-input {
+        background: #f8fafd;
+        border: 1.5px solid #c8d8ef;
+        border-radius: 8px;
+        color: #1a1f2b;
+        padding: 0.6rem 1rem;
+        font-size: 0.9rem;
+        width: 100%;
+        outline: none;
+        transition: border-color .15s, box-shadow .15s;
+    }
+    .infra-input::placeholder { color: #9ab0cc; }
+    .infra-input:focus { border-color: var(--navy); background: #fff; box-shadow: 0 0 0 3px rgba(6,41,82,0.1); }
+    .btn-infra-scan {
+        background: var(--navy);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6rem 1.4rem;
+        font-weight: 700;
+        font-size: 0.9rem;
+        white-space: nowrap;
+        cursor: pointer;
+        transition: background .15s;
+    }
+    .btn-infra-scan:hover { background: #0f4687; }
+    .result-meta { font-size: 0.75rem; color: #64748b; }
+    .tls-chip {
+        display: inline-block;
+        background: #ecfdf5;
+        color: #065f46;
+        border: 1px solid #a7f3d0;
+        border-radius: 5px;
+        padding: 0.15rem 0.45rem;
+        font-size: 0.72rem;
+        font-weight: 600;
+        margin: 0.1rem;
+    }
+    .screenshot-frame {
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+        overflow: hidden;
+        max-width: 320px;
+    }
+    .screenshot-frame img { width: 100%; display: block; }
+    .screenshot-label { font-size: 0.72rem; color: #64748b; padding: 0.3rem 0.6rem; background: #f8fafc; }
+    .san-list { font-size: 0.78rem; color: #374151; font-family: monospace; }
+    .san-list li { padding: 0.1rem 0; }
+    /* ── Section dividers ───────────────────────────────── */
+    .scan-section-divider {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.85rem 1.4rem;
+        border-radius: 10px;
+        margin: 1.75rem 0 1.25rem;
+        color: #fff;
+        background: linear-gradient(135deg, #062952 0%, #0c3f7b 100%);
+    }
+    .scan-section-divider h2 {
+        margin: 0;
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #fff;
+        letter-spacing: 0.01em;
+    }
+    .scan-section-divider .section-icon { font-size: 1.15rem; }
+    .urlscan-divider {
+        background: linear-gradient(135deg, #0c4a6e 0%, #0369a1 100%);
+    }
+    .urlscan-card-hdr {
+        background: linear-gradient(135deg, #0c4a6e 0%, #0369a1 100%) !important;
+        color: #fff;
+    }
+    .urlscan-card-hdr.danger-hdr {
+        background: linear-gradient(135deg, #7f1d1d 0%, #dc2626 100%) !important;
+    }
+{% endblock %}
+
+{% block content %}
+<main class="container my-4 my-md-5">
+<div class="infra-wrap">
+
+    <!-- Hero input bar -->
+    <div class="scan-hero">
+        <div class="scan-hero-head">
+            <h1>🌐 Infrastructure Intelligence</h1>
+            <p>Powered by Shodan &amp; URLScan.io — enter any domain, IP address, or URL for dual-source infrastructure reconnaissance.</p>
+        </div>
+        <div class="scan-hero-body">
+            <form method="POST">
+                <div class="d-flex gap-2 flex-wrap">
+                    <input type="text" name="query" class="infra-input flex-grow-1"
+                           placeholder="e.g.  google.com  /  8.8.8.8  /  https://example.org"
+                           value="{{ query or '' }}" autocomplete="off" spellcheck="false">
+                    <button type="submit" class="btn-infra-scan">Run Infrastructure Scan</button>
+                </div>
+                <div class="mt-2" style="font-size:0.78rem; color:#6b7a99;">
+                    Accepts: domain names · IP addresses · URLs (scheme and path are stripped automatically)
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if result or error or urlscan_result or urlscan_error %}
+
+    <!-- ══ SECTION 1: Shodan Infrastructure Intelligence ══════════════════════ -->
+    <div class="scan-section-divider">
+        <span class="section-icon">📡</span>
+        <h2>Shodan Infrastructure Intelligence</h2>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-danger" style="border-radius:10px; margin-bottom:1.5rem;">
+        <strong>⚠ Shodan Scan Error:</strong> {{ error }}
+    </div>
+    {% endif %}
+
+    {% if result %}
+    {% set h = result.host_info %}
+    {% set g = result.geo %}
+
+    <!-- ── Summary strip ────────────────────────────────────────── -->
+    <div class="d-flex flex-wrap gap-2 mb-4 align-items-center">
+        <span class="badge bg-primary fs-6 px-3 py-2">{{ h.ip }}</span>
+        {% if h.query and h.query != h.ip %}
+        <span class="badge bg-secondary px-3 py-2">{{ h.query }}</span>
+        {% endif %}
+        <span class="badge bg-dark px-3 py-2">{{ h.country }} {% if h.country_code %}<img src="https://flagcdn.com/16x12/{{ h.country_code | lower }}.png" class="ms-1" style="vertical-align:middle">{% endif %}</span>
+        <span class="badge px-3 py-2" style="background:#062952;">{{ result.total_ports }} open ports</span>
+        {% if result.vulns %}
+        <span class="badge badge-{{ result.vulns[0].badge }} px-3 py-2">{{ result.vulns|length }} vulnerabilit{{ 'y' if result.vulns|length == 1 else 'ies' }}</span>
+        {% endif %}
+        {% for tag in h.tags %}
+        <span class="tag-chip">{{ tag }}</span>
+        {% endfor %}
+        {% if h.last_update %}
+        <span class="result-meta ms-auto">Last indexed: {{ h.last_update[:10] }}</span>
+        {% endif %}
+    </div>
+
+    <div class="row g-3">
+
+        <!-- LEFT COLUMN -->
+        <div class="col-lg-5">
+
+            <!-- Host Information -->
+            <div class="infra-card">
+                <div class="infra-card-header">
+                    <h3>🖥 Host Information</h3>
+                </div>
+                <div class="infra-card-body">
+                    <div class="intel-kv"><strong>IP Address</strong><span>{{ h.ip }}</span></div>
+                    {% if h.query and h.query != h.ip %}
+                    <div class="intel-kv"><strong>Query Target</strong><span>{{ h.query }}</span></div>
+                    {% endif %}
+                    <div class="intel-kv"><strong>Organization</strong><span>{{ h.org }}</span></div>
+                    <div class="intel-kv"><strong>ISP</strong><span>{{ h.isp }}</span></div>
+                    <div class="intel-kv"><strong>ASN</strong><span>{{ h.asn }}</span></div>
+                    <div class="intel-kv"><strong>Country</strong><span>{{ h.country }}</span></div>
+                    <div class="intel-kv"><strong>City</strong><span>{{ h.city }}</span></div>
+                    {% if h.hostnames %}
+                    <div class="intel-kv"><strong>Hostnames</strong>
+                        <span>{{ h.hostnames | join(', ') }}</span>
+                    </div>
+                    {% endif %}
+                    {% if h.domains %}
+                    <div class="intel-kv"><strong>Domains</strong>
+                        <span>{{ h.domains | join(', ') }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Geolocation -->
+            {% if g.lat and g.lng %}
+            <div class="infra-card">
+                <div class="infra-card-header">
+                    <h3>📍 Geolocation</h3>
+                    <span class="badge bg-light text-dark" style="font-size:0.72rem;">{{ "%.4f"|format(g.lat) }}, {{ "%.4f"|format(g.lng) }}</span>
+                </div>
+                <div class="infra-card-body p-2">
+                    <iframe
+                        class="infra-map-frame"
+                        src="https://maps.google.com/maps?q={{ "%.6f"|format(g.lat) }},{{ "%.6f"|format(g.lng) }}&z=13&output=embed"
+                        allowfullscreen=""
+                        loading="lazy"
+                        referrerpolicy="no-referrer-when-downgrade">
+                    </iframe>
+                    <div class="mt-2 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                        <span class="result-meta">{{ h.city }}, {{ h.country }}</span>
+                        <a href="https://www.google.com/maps/search/?api=1&query={{ "%.6f"|format(g.lat) }},{{ "%.6f"|format(g.lng) }}"
+                           target="_blank" rel="noopener noreferrer"
+                           style="display:inline-flex;align-items:center;gap:0.35rem;font-size:0.78rem;font-weight:600;color:#fff;background:#062952;border-radius:6px;padding:0.3rem 0.75rem;text-decoration:none;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M8 0C5.24 0 3 2.24 3 5c0 3.75 5 11 5 11s5-7.25 5-11c0-2.76-2.24-5-5-5zm0 7.5C6.62 7.5 5.5 6.38 5.5 5S6.62 2.5 8 2.5 10.5 3.62 10.5 5 9.38 7.5 8 7.5z"/>
+                            </svg>
+                            Open in Google Maps
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Technologies -->
+            {% if result.technologies %}
+            <div class="infra-card">
+                <div class="infra-card-header">
+                    <h3>⚙ Services &amp; Technologies</h3>
+                    <span class="badge bg-light text-dark" style="font-size:0.72rem;">{{ result.technologies|length }} detected</span>
+                </div>
+                <div class="infra-card-body">
+                    {% for tech in result.technologies %}
+                    <span class="tech-chip">{{ tech.name }}{% if tech.version %} <span style="opacity:0.7;">{{ tech.version }}</span>{% endif %}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- SSL/TLS -->
+            {% if result.ssl_info %}
+            {% set ssl = result.ssl_info %}
+            <div class="infra-card">
+                <div class="infra-card-header">
+                    <h3>🔒 SSL / TLS Intelligence</h3>
+                </div>
+                <div class="infra-card-body">
+                    {% if ssl.subject_cn %}
+                    <div class="intel-kv"><strong>Subject CN</strong><span>{{ ssl.subject_cn }}</span></div>
+                    {% endif %}
+                    {% if ssl.issuer_cn %}
+                    <div class="intel-kv"><strong>Issuer</strong><span>{{ ssl.issuer_cn }}{% if ssl.issuer_org %} ({{ ssl.issuer_org }}){% endif %}</span></div>
+                    {% endif %}
+                    {% if ssl.issued %}
+                    <div class="intel-kv"><strong>Issued</strong><span>{{ ssl.issued[:10] }}</span></div>
+                    {% endif %}
+                    {% if ssl.expires %}
+                    <div class="intel-kv"><strong>Expires</strong><span>{{ ssl.expires[:10] }}</span></div>
+                    {% endif %}
+                    {% if ssl.cipher %}
+                    <div class="intel-kv"><strong>Cipher</strong><span>{{ ssl.cipher }}</span></div>
+                    {% endif %}
+                    {% if ssl.tls_versions %}
+                    <div class="intel-kv"><strong>TLS Versions</strong>
+                        <span>{% for v in ssl.tls_versions %}<span class="tls-chip">{{ v }}</span>{% endfor %}</span>
+                    </div>
+                    {% endif %}
+                    {% if ssl.sha256 %}
+                    <div class="intel-kv"><strong>SHA-256</strong><span style="font-family:monospace;font-size:0.72rem;">{{ ssl.sha256[:32] }}…</span></div>
+                    {% endif %}
+                    {% if ssl.san_domains %}
+                    <div class="mt-2">
+                        <small class="fw-semibold" style="color:#062952;">SAN Domains ({{ ssl.san_domains|length }})</small>
+                        <ul class="san-list mt-1 ps-3 mb-0" style="max-height:120px;overflow-y:auto;">
+                            {% for d in ssl.san_domains %}<li>{{ d }}</li>{% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div class="col-lg-7">
+
+            <!-- Open Ports -->
+            <div class="infra-card">
+                <div class="infra-card-header">
+                    <h3>🔌 Open Ports</h3>
+                    <span class="badge bg-light text-dark" style="font-size:0.72rem;">{{ result.total_ports }} ports</span>
+                </div>
+                <div class="infra-card-body p-2 pb-3 px-3">
+                    <div class="mb-3">
+                        {% for svc in result.services %}
+                        <span class="port-chip" title="{{ svc.service or svc.product or '' }}/{{ svc.transport }}">{{ svc.port }}/{{ svc.transport }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="table-responsive" style="max-height:340px;overflow-y:auto;">
+                        <table class="table table-sm table-hover mb-0" style="font-size:0.82rem;">
+                            <thead class="table-light" style="position:sticky;top:0;">
+                                <tr>
+                                    <th style="width:80px;">Port</th>
+                                    <th style="width:70px;">Protocol</th>
+                                    <th>Service / Product</th>
+                                    <th style="width:90px;">Version</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for svc in result.services %}
+                                <tr>
+                                    <td class="fw-bold" style="font-family:monospace;">{{ svc.port }}</td>
+                                    <td><span class="badge bg-secondary" style="font-size:0.68rem;">{{ svc.transport | upper }}</span></td>
+                                    <td>{{ svc.product or svc.service or '—' }}</td>
+                                    <td><small class="text-muted">{{ svc.version or '—' }}</small></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vulnerabilities -->
+            {% if result.vulns %}
+            <div class="infra-card">
+                <div class="infra-card-header">
+                    <h3>🛡 Vulnerabilities</h3>
+                    <span class="badge bg-danger" style="font-size:0.72rem;">{{ result.vulns|length }} CVEs</span>
+                </div>
+                <div class="infra-card-body p-0">
+                    <div class="table-responsive" style="max-height:380px;overflow-y:auto;">
+                        <table class="table table-sm table-hover mb-0" style="font-size:0.82rem;">
+                            <thead class="table-light" style="position:sticky;top:0;">
+                                <tr>
+                                    <th style="width:140px;">CVE</th>
+                                    <th style="width:90px;">Severity</th>
+                                    <th style="width:65px;">CVSS</th>
+                                    <th>Summary</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for v in result.vulns %}
+                                <tr>
+                                    <td><a href="https://nvd.nist.gov/vuln/detail/{{ v.cve }}" target="_blank" style="font-family:monospace;font-size:0.78rem;font-weight:600;">{{ v.cve }}</a></td>
+                                    <td><span class="badge badge-{{ v.badge }}">{{ v.severity }}</span></td>
+                                    <td class="fw-semibold">{{ "%.1f"|format(v.cvss) }}</td>
+                                    <td><small class="text-muted">{{ v.summary[:120] }}{% if v.summary|length > 120 %}…{% endif %}</small></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="infra-card">
+                <div class="infra-card-header"><h3>🛡 Vulnerabilities</h3></div>
+                <div class="infra-card-body">
+                    <div class="alert alert-success mb-0" style="font-size:0.85rem;">No known CVEs indexed by Shodan for this host.</div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Screenshots -->
+            {% if result.screenshots %}
+            <div class="infra-card">
+                <div class="infra-card-header">
+                    <h3>🖼 Screenshots</h3>
+                    <span class="badge bg-light text-dark" style="font-size:0.72rem;">{{ result.screenshots|length }} captured</span>
+                </div>
+                <div class="infra-card-body">
+                    <div class="d-flex flex-wrap gap-3">
+                        {% for sc in result.screenshots %}
+                        <div class="screenshot-frame">
+                            <img src="data:{{ sc.mime }};base64,{{ sc.data }}" alt="Port {{ sc.port }} screenshot">
+                            <div class="screenshot-label">Port {{ sc.port }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Service Banners (collapsible) -->
+            <div class="infra-card">
+                <div class="infra-card-header" style="cursor:pointer;" data-bs-toggle="collapse" data-bs-target="#banners-body">
+                    <h3>📄 Service Banners</h3>
+                    <span class="badge bg-light text-dark" style="font-size:0.72rem;">click to expand</span>
+                </div>
+                <div id="banners-body" class="collapse">
+                    <div class="infra-card-body p-0">
+                        {% for svc in result.services if svc.banner %}
+                        <div class="border-bottom p-2 px-3" style="font-family:monospace;font-size:0.75rem;white-space:pre-wrap;overflow-x:auto;background:#f8fafc;">
+                            <span class="badge bg-dark me-2">{{ svc.port }}/{{ svc.transport }}</span>{{ svc.banner }}
+                        </div>
+                        {% else %}
+                        <div class="p-3"><small class="text-muted">No banner data available.</small></div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /col-lg-7 -->
+    </div><!-- /row -->
+
+    <!-- Download PDF button — only shown when a Shodan result exists -->
+    <div class="d-flex justify-content-end mt-4 mb-2">
+        <a href="/infra-intel/download/pdf"
+           class="btn btn-sm d-inline-flex align-items-center gap-2"
+           style="background:var(--navy);color:#fff;border-radius:8px;font-weight:700;padding:0.55rem 1.3rem;text-decoration:none;font-size:0.88rem;box-shadow:0 2px 8px rgba(6,41,82,.25);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+            </svg>
+            Download PDF Report
+        </a>
+    </div>
+    {% endif %}{# /result #}
+
+    <!-- ══ SECTION 2: URLScan Intelligence ════════════════════════════════════ -->
+    <div class="scan-section-divider urlscan-divider mt-4">
+        <span class="section-icon">🔍</span>
+        <h2>URLScan Intelligence</h2>
+    </div>
+
+    {% if urlscan_error %}
+    <div class="alert alert-warning" style="border-radius:10px; margin-bottom:1.5rem;">
+        <strong>⚠ URLScan Error:</strong> {{ urlscan_error }}
+    </div>
+    {% endif %}
+
+    {% if urlscan_result %}
+    {% set um = urlscan_result.scan_meta %}
+    {% set up = urlscan_result.page_intel %}
+    {% set us = urlscan_result.security %}
+    {% set ui = urlscan_result.infrastructure %}
+    {% set ust = urlscan_result.stats %}
+
+    <!-- URLScan summary strip -->
+    <div class="d-flex flex-wrap gap-2 mb-4 align-items-center">
+        {% if um.ip %}<span class="badge bg-primary fs-6 px-3 py-2">{{ um.ip }}</span>{% endif %}
+        {% if um.domain %}<span class="badge bg-secondary px-3 py-2">{{ um.domain }}</span>{% endif %}
+        {% if um.country %}<span class="badge bg-dark px-3 py-2">{{ um.country }}</span>{% endif %}
+        {% if up.status %}<span class="badge px-3 py-2" style="background:#0369a1;">HTTP {{ up.status }}</span>{% endif %}
+        {% if us.malicious %}
+        <span class="badge badge-critical px-3 py-2">⚠ Malicious</span>
+        {% elif us.score > 0 %}
+        <span class="badge badge-high px-3 py-2">Risk Score: {{ us.score }}</span>
+        {% else %}
+        <span class="badge bg-success px-3 py-2">✓ Clean</span>
+        {% endif %}
+        {% if um.timestamp %}
+        <span class="result-meta ms-auto">Scan: {{ um.timestamp }}</span>
+        {% endif %}
+    </div>
+
+    <div class="row g-3">
+
+        <!-- LEFT COLUMN -->
+        <div class="col-lg-5">
+
+            <!-- A. Scan Metadata -->
+            <div class="infra-card">
+                <div class="infra-card-header urlscan-card-hdr">
+                    <h3>📋 Scan Metadata</h3>
+                </div>
+                <div class="infra-card-body">
+                    {% if um.scan_id %}
+                    <div class="intel-kv"><strong>Scan ID</strong><span style="font-family:monospace;font-size:0.73rem;word-break:break-all;">{{ um.scan_id }}</span></div>
+                    {% endif %}
+                    {% if um.timestamp %}
+                    <div class="intel-kv"><strong>Timestamp</strong><span>{{ um.timestamp }}</span></div>
+                    {% endif %}
+                    {% if um.url %}
+                    <div class="intel-kv"><strong>Page URL</strong><span style="word-break:break-all;">{{ um.url[:80] }}{% if um.url|length > 80 %}…{% endif %}</span></div>
+                    {% endif %}
+                    {% if um.domain %}
+                    <div class="intel-kv"><strong>Domain</strong><span>{{ um.domain }}</span></div>
+                    {% endif %}
+                    {% if um.ip %}
+                    <div class="intel-kv"><strong>IP Address</strong><span>{{ um.ip }}</span></div>
+                    {% endif %}
+                    {% if um.asn %}
+                    <div class="intel-kv"><strong>ASN</strong><span>{{ um.asn }}</span></div>
+                    {% endif %}
+                    {% if um.asnname %}
+                    <div class="intel-kv"><strong>ASN Name</strong><span>{{ um.asnname }}</span></div>
+                    {% endif %}
+                    {% if um.country %}
+                    <div class="intel-kv"><strong>Country</strong><span>{{ um.country }}</span></div>
+                    {% endif %}
+                    {% if um.server %}
+                    <div class="intel-kv"><strong>Server</strong><span>{{ um.server }}</span></div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- C. Security Indicators -->
+            <div class="infra-card">
+                <div class="infra-card-header urlscan-card-hdr{% if us.malicious %} danger-hdr{% endif %}">
+                    <h3>🛡 Security Indicators</h3>
+                    {% if us.malicious %}
+                    <span class="badge bg-danger">MALICIOUS</span>
+                    {% elif us.score > 0 %}
+                    <span class="badge" style="background:#d97706;">Score: {{ us.score }}</span>
+                    {% else %}
+                    <span class="badge bg-success">Clean</span>
+                    {% endif %}
+                </div>
+                <div class="infra-card-body">
+                    <div class="intel-kv"><strong>Verdict</strong>
+                        <span>{% if us.malicious %}⚠ Malicious content detected{% elif us.score > 0 %}Suspicious (score {{ us.score }}){% else %}✓ No threats detected{% endif %}</span>
+                    </div>
+                    {% if us.tags %}
+                    <div class="intel-kv"><strong>Tags</strong>
+                        <span>{% for tag in us.tags %}<span class="tag-chip">{{ tag }}</span>{% endfor %}</span>
+                    </div>
+                    {% endif %}
+
+                    {% if us.tls %}
+                    {% set tls = us.tls %}
+                    <hr style="margin: 0.75rem 0; border-color: #e2e8f0;">
+                    <div class="fw-semibold mb-2" style="font-size:0.82rem; color:#0c4a6e;">TLS / SSL Details</div>
+                    {% if tls.protocol %}
+                    <div class="intel-kv"><strong>Protocol</strong><span>{{ tls.protocol }}</span></div>
+                    {% endif %}
+                    {% if tls.cipher %}
+                    <div class="intel-kv"><strong>Cipher</strong><span>{{ tls.cipher }}</span></div>
+                    {% endif %}
+                    {% if tls.subject %}
+                    <div class="intel-kv"><strong>Subject</strong><span>{{ tls.subject }}</span></div>
+                    {% endif %}
+                    {% if tls.issuer %}
+                    <div class="intel-kv"><strong>Issuer</strong><span>{{ tls.issuer }}</span></div>
+                    {% endif %}
+                    {% if tls.valid_from %}
+                    <div class="intel-kv"><strong>Valid From</strong><span>{{ tls.valid_from }}</span></div>
+                    {% endif %}
+                    {% if tls.valid_to %}
+                    <div class="intel-kv"><strong>Expires</strong><span>{{ tls.valid_to }}</span></div>
+                    {% endif %}
+                    {% if tls.san_list %}
+                    <div class="mt-2">
+                        <small class="fw-semibold" style="color:#0c4a6e;">SAN List ({{ tls.san_list|length }})</small>
+                        <ul class="san-list mt-1 ps-3 mb-0" style="max-height:100px;overflow-y:auto;">
+                            {% for d in tls.san_list %}<li>{{ d }}</li>{% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <div class="alert alert-secondary mb-0 mt-2" style="font-size:0.82rem;">No TLS/SSL details found in this scan record.</div>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>{# /col-lg-5 #}
+
+        <!-- RIGHT COLUMN -->
+        <div class="col-lg-7">
+
+            <!-- B. Page Intelligence -->
+            <div class="infra-card">
+                <div class="infra-card-header urlscan-card-hdr">
+                    <h3>🌐 Page Intelligence</h3>
+                    {% if up.status %}<span class="badge bg-light text-dark" style="font-size:0.72rem;">HTTP {{ up.status }}</span>{% endif %}
+                </div>
+                <div class="infra-card-body">
+                    {% if up.title %}
+                    <div class="intel-kv"><strong>Page Title</strong><span>{{ up.title }}</span></div>
+                    {% endif %}
+                    {% if up.mime_type %}
+                    <div class="intel-kv"><strong>MIME Type</strong><span>{{ up.mime_type }}</span></div>
+                    {% endif %}
+                    {% if up.redirected %}
+                    <div class="intel-kv"><strong>Final URL</strong><span style="word-break:break-all;">{{ up.redirected[:80] }}{% if up.redirected|length > 80 %}…{% endif %}</span></div>
+                    {% endif %}
+                    {% if ust.requests %}
+                    <div class="intel-kv"><strong>Total Requests</strong><span>{{ ust.requests }}</span></div>
+                    {% endif %}
+                    {% if ust.countries %}
+                    <div class="intel-kv"><strong>IP Countries</strong><span>{{ ust.countries }}</span></div>
+                    {% endif %}
+                    {% if up.technologies %}
+                    <hr style="margin: 0.75rem 0; border-color: #e2e8f0;">
+                    <div class="fw-semibold mb-2" style="font-size:0.82rem; color:#0c4a6e;">Technologies Detected</div>
+                    {% for tech in up.technologies %}
+                    <span class="tech-chip" title="{{ tech.categories | join(', ') }}">
+                        {{ tech.name }}{% if tech.categories %} <span style="opacity:0.65;font-size:0.69rem;">({{ tech.categories[0] }})</span>{% endif %}
+                    </span>
+                    {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- D. Infrastructure Relationships -->
+            <div class="infra-card">
+                <div class="infra-card-header urlscan-card-hdr">
+                    <h3>🔗 Infrastructure Relationships</h3>
+                    <span class="badge bg-light text-dark" style="font-size:0.72rem;">
+                        {{ (ui.domains|length) + (ui.ips|length) }} resources
+                    </span>
+                </div>
+                <div class="infra-card-body">
+                    {% if ui.domains %}
+                    <div class="mb-3">
+                        <div class="fw-semibold mb-1" style="font-size:0.82rem; color:#0c4a6e;">Related Domains ({{ ui.domains|length }})</div>
+                        {% for d in ui.domains %}<span class="port-chip" style="background:#e0f2fe; color:#0c4a6e;">{{ d }}</span>{% endfor %}
+                    </div>
+                    {% endif %}
+                    {% if ui.ips %}
+                    <div class="mb-3">
+                        <div class="fw-semibold mb-1" style="font-size:0.82rem; color:#0c4a6e;">Related IPs ({{ ui.ips|length }})</div>
+                        {% for ip in ui.ips %}<span class="port-chip">{{ ip }}</span>{% endfor %}
+                    </div>
+                    {% endif %}
+                    {% if ui.asns %}
+                    <div class="mb-3">
+                        <div class="fw-semibold mb-1" style="font-size:0.82rem; color:#0c4a6e;">ASNs</div>
+                        {% for asn in ui.asns %}<span class="tag-chip" style="background:#e0f2fe; color:#0c4a6e;">{{ asn }}</span>{% endfor %}
+                    </div>
+                    {% endif %}
+                    {% if ui.servers %}
+                    <div class="mb-3">
+                        <div class="fw-semibold mb-1" style="font-size:0.82rem; color:#0c4a6e;">Server Software</div>
+                        {% for srv in ui.servers %}<span class="tech-chip">{{ srv }}</span>{% endfor %}
+                    </div>
+                    {% endif %}
+                    {% if ui.certificates %}
+                    <div>
+                        <div class="fw-semibold mb-1" style="font-size:0.82rem; color:#0c4a6e;">Certificates</div>
+                        {% for cert in ui.certificates %}
+                        <div class="p-2 mb-1" style="background:#f0f9ff; border-radius:6px; border:1px solid #bae6fd; font-size:0.79rem;">
+                            <strong>{{ cert.subject or '—' }}</strong> — {{ cert.issuer or '—' }}<br>
+                            <small class="text-muted">{{ cert.valid_from }} → {{ cert.valid_to }}</small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    {% if not ui.domains and not ui.ips and not ui.asns and not ui.servers and not ui.certificates %}
+                    <div class="text-muted" style="font-size:0.85rem;">No infrastructure relationship data available in this scan.</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- E. Screenshot / Visual Preview -->
+            <div class="infra-card">
+                <div class="infra-card-header urlscan-card-hdr">
+                    <h3>🖼 Visual Preview</h3>
+                    <span class="badge bg-light text-dark" style="font-size:0.72rem;">URLScan Screenshot</span>
+                </div>
+                <div class="infra-card-body p-2">
+                    <div class="screenshot-frame" style="max-width:100%;">
+                        <img src="{{ urlscan_result.screenshot_url }}"
+                             alt="URLScan screenshot for {{ um.domain or um.ip }}"
+                             style="width:100%;display:block;border-radius:4px;"
+                             onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+                        <div class="p-3 text-muted" style="display:none; font-size:0.85rem; background:#f8fafc; border-radius:4px;">
+                            Screenshot not available for this scan record.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- F. Full Scan Report (external link) -->
+            <div class="infra-card">
+                <div class="infra-card-header urlscan-card-hdr">
+                    <h3>🔗 Full Scan Report</h3>
+                </div>
+                <div class="infra-card-body">
+                    <p style="font-size:0.85rem; color:#374151; margin-bottom:1rem;">
+                        View the complete URLScan.io intelligence report including all HTTP requests,
+                        loaded resources, security analysis, and DOM snapshot.
+                    </p>
+                    <a href="{{ urlscan_result.result_url }}" target="_blank" rel="noopener noreferrer"
+                       class="d-inline-flex align-items-center gap-2"
+                       style="background:#0369a1;color:#fff;border-radius:8px;padding:0.55rem 1.3rem;text-decoration:none;font-weight:700;font-size:0.88rem;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M8.636 3.5a.5.5 0 0 0-.5-.5H1.5A1.5 1.5 0 0 0 0 4.5v10A1.5 1.5 0 0 0 1.5 16h10a1.5 1.5 0 0 0 1.5-1.5V7.864a.5.5 0 0 0-1 0V14.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10a.5.5 0 0 1 .5-.5h6.636a.5.5 0 0 0 .5-.5z"/>
+                            <path d="M16 .5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793L6.146 9.146a.5.5 0 1 0 .708.708L15 1.707V5.5a.5.5 0 0 0 1 0v-5z"/>
+                        </svg>
+                        View Full Scan on URLScan.io
+                    </a>
+                </div>
+            </div>
+
+        </div>{# /col-lg-7 #}
+    </div>{# /row #}
+    {% endif %}{# /urlscan_result #}
+
+    {% endif %}{# /scan_performed #}
+
+</div><!-- /infra-wrap -->
+</main>
+{% endblock %}
+
+{% block extra_js %}{% endblock %}

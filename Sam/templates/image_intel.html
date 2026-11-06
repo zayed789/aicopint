@@ -1,0 +1,1066 @@
+{% extends "base.html" %}
+
+{% block title %}Image Intelligence - Metadata Analysis{% endblock %}
+
+{% block extra_css %}
+/* ── Upload card wrapper ── */
+.upload-card { background:#fff; border:1px solid #d3deef; border-radius:14px; box-shadow:0 4px 16px rgba(6,41,82,.07); overflow:hidden; margin-bottom:1.5rem; }
+
+/* ── Upload zone ── */
+.upload-zone { background:#f8fbff; border:2px dashed #b0c6e0; border-radius:12px; padding:3rem 2rem; text-align:center; transition:all .2s; cursor:pointer; position:relative; margin:1.25rem; }
+.upload-zone:hover, .upload-zone.dragover { border-color:var(--navy); background:#eef4ff; }
+.upload-zone.uploading { border-color:var(--navy); background:#eef4ff; }
+.upload-icon { font-size:2.5rem; margin-bottom:0.7rem; }
+.upload-text { font-size:1rem; font-weight:600; color:#344563; margin-bottom:0.3rem; }
+.upload-hint { font-size:0.82rem; color:#7a8ba8; }
+.upload-input { position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer; }
+
+/* ── Progress bar ── */
+.upload-progress { margin-top:1.25rem; display:none; }
+.upload-progress.active { display:block; }
+.progress { background:#e2e8f0; border-radius:10px; height:6px; }
+.progress-bar { background:var(--navy); border-radius:10px; transition:width .3s ease; }
+
+/* ── Action panel ── */
+.action-panel { background:#f4f7fb; border-top:1px solid #d3deef; padding:1rem 1.5rem; }
+#fileInfo strong { color:var(--navy) !important; }
+
+/* ── Scan / Clear buttons ── */
+.btn-scan { background:var(--navy); color:#fff; border:none; padding:0.58rem 1.8rem; font-weight:700; font-size:0.92rem; border-radius:8px; transition:background .15s; }
+.btn-scan:hover:not(:disabled) { background:#0d3e78; color:#fff; }
+.btn-scan:disabled { background:#c5d4e8; color:#7a8ba8; cursor:not-allowed; }
+.btn-clear { background:transparent; border:1px solid #9eb3d2; color:#62748e; padding:0.58rem 1.2rem; font-weight:600; font-size:0.92rem; border-radius:8px; transition:all .15s; }
+.btn-clear:hover { border-color:var(--navy); color:var(--navy); }
+
+/* ── Image preview panel ── */
+.preview-panel { background:#f8fbff; border-top:1px solid #d3deef; padding:1.25rem 1.5rem; display:none; }
+.preview-panel.active { display:block; }
+.preview-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; }
+.preview-header h3 { font-size:0.9rem; font-weight:700; color:var(--navy); margin:0; }
+.file-badge { background:#eef2f9; color:#344563; padding:0.22rem 0.7rem; border-radius:20px; font-size:0.78rem; font-weight:600; border:1px solid #d3deef; }
+.image-preview-container { background:#fff; border:1px solid #d3deef; border-radius:10px; padding:1rem; text-align:center; max-height:400px; overflow:hidden; }
+.image-preview-container img { max-width:100%; max-height:350px; border-radius:6px; box-shadow:0 2px 12px rgba(6,41,82,.1); }
+
+/* ── Results dashboard ── */
+.results-dashboard { margin-top:1.5rem; display:none; }
+.results-dashboard.active { display:block; }
+
+/* ── Intel cards ── */
+.intel-card { background:#fff; border:1px solid #d3deef; border-radius:12px; overflow:hidden; height:100%; box-shadow:0 2px 10px rgba(6,41,82,.06); }
+.intel-card-header { background:linear-gradient(90deg,var(--navy),#0c3f7b); display:flex; align-items:center; gap:0.7rem; padding:0.7rem 1rem; }
+.intel-card-icon { font-size:1.1rem; }
+.intel-card-title { font-size:0.88rem; font-weight:700; color:#fff; margin:0; }
+.intel-card-body { padding:1rem 1.1rem; color:#344563; }
+
+/* ── Metadata items ── */
+.meta-item { margin-bottom:0.75rem; }
+.meta-label { font-size:0.72rem; text-transform:uppercase; letter-spacing:.06em; color:#7a8ba8; margin-bottom:0.15rem; font-weight:600; }
+.meta-value { font-size:0.9rem; color:#1a2742; font-weight:500; }
+.meta-value.highlight { color:var(--navy); font-weight:700; }
+
+/* ── GPS section ── */
+.gps-coordinates { background:#f0f5ff; border:1px solid #d3deef; border-radius:8px; padding:0.9rem; margin-bottom:0.9rem; }
+.coordinate-pair { display:flex; gap:1.5rem; margin-bottom:0.4rem; }
+.coord-value { font-family:'Courier New',monospace; font-size:1rem; color:var(--navy); font-weight:700; }
+.maps-link { display:inline-flex; align-items:center; gap:0.5rem; background:#4285f4; color:#fff; text-decoration:none; padding:0.5rem 1.1rem; border-radius:8px; font-weight:600; font-size:0.88rem; transition:background .15s; }
+.maps-link:hover { background:#3367d6; color:#fff; }
+
+/* ── Mini map ── */
+.mini-map { background:#eef2f9; border:1px solid #d3deef; border-radius:10px; height:200px; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+.mini-map iframe { width:100%; height:100%; border:none; border-radius:10px; }
+.mini-map-placeholder { text-align:center; color:#7a8ba8; }
+
+/* ── Status badges ── */
+.status-badge { display:inline-flex; align-items:center; gap:0.4rem; padding:0.35rem 0.9rem; border-radius:20px; font-weight:600; font-size:0.82rem; }
+.status-badge.success { background:#e6f5ea; color:#1a7a3a; border:1px solid #b7e5c6; }
+.status-badge.warning { background:#fff3cd; color:#7d5a00; border:1px solid #ffd97d; }
+.status-badge.danger  { background:#fef2f2; color:#991b1b; border:1px solid #fecaca; }
+.status-badge.info    { background:#dbeafe; color:#1e40af; border:1px solid #bfdbfe; }
+
+/* ── Alert box ── */
+.intel-alert { background:#fef2f2; border-left:4px solid #dc3545; border-radius:8px; padding:0.9rem 1rem; margin-bottom:1rem; font-size:0.88rem; color:#721c24; }
+.intel-alert.warning { background:#fff3cd; border-left-color:#f39c12; color:#7d5a00; }
+
+/* ── Scanning overlay ── */
+.scanning-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(6,41,82,.75); backdrop-filter:blur(4px); z-index:9999; justify-content:center; align-items:center; flex-direction:column; }
+.scanning-overlay.active { display:flex; }
+.spinner { width:52px; height:52px; border:4px solid rgba(255,255,255,.2); border-top-color:var(--khaki); border-radius:50%; animation:spin 1s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.scanning-text { margin-top:1rem; color:#fff; font-size:1rem; font-weight:600; }
+
+/* ── Download button ── */
+.btn-download { display:inline-flex; align-items:center; gap:0.4rem; background:#fff; border:1px solid #d3deef; color:var(--navy); padding:0.4rem 1rem; border-radius:8px; font-weight:600; font-size:0.85rem; text-decoration:none; transition:all .15s; }
+.btn-download:hover { background:#eef4ff; border-color:var(--navy); color:var(--navy); }
+
+/* ── Metadata status dividers ── */
+#statusContent .border-divider { border-top:1px solid #eef2f9; padding-top:0.75rem; margin-top:0.5rem; }
+
+@media (max-width:768px) {
+    .upload-zone { padding:2rem 1rem; margin:0.75rem; }
+    .coordinate-pair { flex-direction:column; gap:0.5rem; }
+}
+.ii-wrap { max-width: 860px; margin: 0 auto; }
+
+/* ── Visual Intelligence section ── */
+.vi-trigger-bar {
+    background: linear-gradient(135deg, #041d39 0%, #062952 60%, #0c3f7b 100%);
+    border-radius: 12px;
+    padding: 1.1rem 1.5rem;
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 2rem;
+}
+.vi-trigger-title { color: #fff; font-size: 1rem; font-weight: 700; margin: 0 0 0.15rem; }
+.vi-trigger-sub   { color: #a8c0e8; font-size: 0.8rem; margin: 0; }
+.btn-lens {
+    background: var(--khaki); color: var(--navy-dark);
+    border: none; border-radius: 8px; font-weight: 700;
+    font-size: 0.88rem; padding: 0.55rem 1.3rem; cursor: pointer;
+    white-space: nowrap; transition: background .15s;
+}
+.btn-lens:hover:not(:disabled) { background: var(--accent); }
+.btn-lens:disabled { opacity: .55; cursor: not-allowed; }
+.vi-loading {
+    display: none; align-items: center; gap: 0.75rem;
+    padding: 1.1rem 1.5rem;
+    background: #f0f4fb; border-radius: 10px;
+    margin-top: 1rem; color: #344563; font-size: 0.9rem;
+}
+.vi-loading.active { display: flex; }
+.vi-spinner {
+    width: 22px; height: 22px; border: 3px solid #c8d8ef;
+    border-top-color: var(--navy); border-radius: 50%;
+    animation: spin 0.8s linear infinite; flex-shrink: 0;
+}
+.vi-error {
+    display: none; background: #fef2f2; border-left: 4px solid #dc3545;
+    border-radius: 8px; padding: 0.9rem 1rem; margin-top: 1rem;
+    color: #991b1b; font-size: 0.88rem;
+}
+.vi-error.active { display: block; }
+#vi-results { margin-top: 1.25rem; }
+/* Summary card */
+.vi-summary {
+    background: linear-gradient(120deg, #041d39, #062952);
+    border-radius: 12px; padding: 1.1rem 1.4rem;
+    border-left: 4px solid var(--khaki); margin-bottom: 1.25rem;
+}
+.vi-summary-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: .1em; color: var(--khaki); font-weight: 700; margin-bottom: 0.4rem; }
+.vi-summary-text  { color: #d9e8ff; font-size: 0.9rem; line-height: 1.6; }
+/* Section cards */
+.vi-card { background: #fff; border: 1px solid #d3deef; border-radius: 12px; overflow: hidden; margin-bottom: 1.1rem; }
+.vi-card-head {
+    background: linear-gradient(90deg, var(--navy), #0c3f7b);
+    padding: 0.65rem 1rem;
+    display: flex; align-items: center; justify-content: space-between; gap: 0.6rem;
+}
+.vi-card-head-title { color: #fff; font-size: 0.88rem; font-weight: 700; margin: 0; }
+.vi-card-head-badge { font-size: 0.7rem; font-weight: 700; background: rgba(255,255,255,.15); color: #fff; border-radius: 20px; padding: 0.18rem 0.6rem; }
+.vi-card-body { padding: 1rem 1.1rem; }
+/* Match rows */
+.vi-match-list { display: flex; flex-direction: column; gap: 0.6rem; }
+.vi-match-item {
+    display: flex; align-items: flex-start; gap: 0.8rem;
+    padding: 0.65rem 0.8rem; background: #f8fbff;
+    border: 1px solid #e2ecf8; border-radius: 8px;
+    transition: border-color .15s;
+}
+.vi-match-item:hover { border-color: #a8c4e0; }
+.vi-match-thumb {
+    width: 52px; height: 52px; border-radius: 6px; object-fit: cover;
+    flex-shrink: 0; border: 1px solid #d3deef; background: #eef2f9;
+}
+.vi-match-info { flex: 1; min-width: 0; }
+.vi-match-title { font-size: 0.85rem; font-weight: 600; color: #1a2742; margin-bottom: 0.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vi-match-source { font-size: 0.75rem; color: #64748b; }
+.vi-match-link { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.72rem; font-weight: 700; color: #fff; background: var(--navy); border-radius: 5px; padding: 0.18rem 0.55rem; text-decoration: none; white-space: nowrap; flex-shrink: 0; }
+.vi-match-link:hover { background: #0f4687; color: #fff; }
+/* KG card */
+.vi-kg-body { display: flex; gap: 1rem; align-items: flex-start; }
+.vi-kg-img { width: 72px; height: 72px; border-radius: 8px; object-fit: cover; border: 1px solid #d3deef; flex-shrink: 0; }
+.vi-kv-label { font-size: 0.69rem; font-weight: 700; color: #7a93b8; text-transform: uppercase; letter-spacing: .04em; }
+.vi-kv-val   { font-size: 0.87rem; color: #1a2742; font-weight: 500; line-height: 1.45; }
+/* Text detection */
+.vi-text-box { background: #f4f8ff; border: 1px solid #d3deef; border-radius: 8px; padding: 0.85rem 1rem; font-family: 'Courier New', monospace; font-size: 0.82rem; color: #1a2742; white-space: pre-wrap; max-height: 220px; overflow-y: auto; }
+/* Related searches */
+.vi-chip { display: inline-block; background: #eef2f9; color: #1a2742; border: 1px solid #c8d8ef; border-radius: 999px; padding: 0.25rem 0.75rem; font-size: 0.78rem; font-weight: 600; margin: 0.2rem; text-decoration: none; transition: background .15s; }
+.vi-chip:hover { background: #e0e9f7; color: var(--navy); }
+/* Product grid */
+.vi-product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 0.75rem; }
+.vi-product-card { background: #f8fbff; border: 1px solid #e2ecf8; border-radius: 8px; overflow: hidden; }
+.vi-product-thumb { width: 100%; height: 110px; object-fit: contain; background: #fff; border-bottom: 1px solid #e2ecf8; padding: 0.4rem; }
+.vi-product-info { padding: 0.5rem 0.6rem; }
+.vi-product-title { font-size: 0.79rem; font-weight: 600; color: #1a2742; margin-bottom: 0.2rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.vi-product-price { font-size: 0.82rem; font-weight: 700; color: var(--navy); }
+.vi-product-source { font-size: 0.7rem; color: #64748b; }
+/* Inline image grid */
+.vi-img-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.vi-img-item { width: 72px; height: 72px; border-radius: 6px; object-fit: cover; border: 1px solid #d3deef; cursor: pointer; transition: opacity .15s; }
+.vi-img-item:hover { opacity: .82; }
+/* Source link button */
+.vi-source-btn { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; font-weight: 600; color: var(--navy); text-decoration: none; border: 1px solid #c8d8ef; border-radius: 6px; padding: 0.3rem 0.75rem; margin-top: 0.75rem; }
+.vi-source-btn:hover { background: #eef2f9; color: var(--navy); }
+{% endblock %}
+
+{% block content %}
+<main class="container my-4">
+<div class="ii-wrap">
+    <!-- Scanning Overlay -->
+    <div id="scanningOverlay" class="scanning-overlay">
+        <div class="spinner"></div>
+        <div class="scanning-text">Analyzing Image Metadata...</div>
+    </div>
+
+    <!-- Page Header -->
+    <div class="mb-3">
+        <h4 class="fw-bold mb-1" style="color:var(--navy)">🖼️ Image Intelligence &amp; Metadata Analysis</h4>
+        <p class="text-muted mb-0" style="font-size:0.88rem">Extract EXIF data, GPS coordinates, device info, and forensic artifacts from images</p>
+    </div>
+
+    <!-- Upload Card -->
+    <div class="upload-card">
+
+        <!-- Upload Zone -->
+        <div id="uploadZone" class="upload-zone">
+            <input type="file" id="fileInput" class="upload-input" accept=".jpg,.jpeg,.png,.webp,.tiff,.tif,.bmp,.gif">
+            <div class="upload-icon">📤</div>
+            <div class="upload-text">Drag &amp; drop image here or click to browse</div>
+            <div class="upload-hint">Supported: JPG, PNG, WebP, TIFF, BMP, GIF (max 50MB)</div>
+            <div id="uploadProgress" class="upload-progress">
+                <div class="progress">
+                    <div id="progressBar" class="progress-bar" role="progressbar" style="width:0%"></div>
+                </div>
+                <div class="text-center mt-2" style="color:#7a8ba8;font-size:0.82rem;">
+                    Uploading… <span id="progressText">0%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Image Preview -->
+        <div id="previewPanel" class="preview-panel">
+            <div class="preview-header">
+                <h3>📋 Image Preview</h3>
+                <span id="fileBadge" class="file-badge">No file selected</span>
+            </div>
+            <div class="image-preview-container">
+                <img id="previewImage" src="" alt="Preview">
+            </div>
+        </div>
+
+        <!-- Action Panel -->
+        <div id="actionPanel" class="action-panel">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div id="fileInfo" style="color:#7a8ba8;font-size:0.88rem;">No image uploaded yet</div>
+                </div>
+                <div class="col-md-4 text-md-end mt-2 mt-md-0">
+                    <button id="clearBtn" class="btn-clear me-2">Clear</button>
+                    <button id="scanBtn" class="btn-scan" disabled>🔍 Run Image Scan</button>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /upload-card -->
+
+    <!-- Results Dashboard -->
+    <div id="resultsDashboard" class="results-dashboard">
+        <!-- Status Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+            <h2 class="h5 fw-bold mb-0" style="color:var(--navy);">📊 Intelligence Results</h2>
+            <div class="d-flex gap-2">
+                <span id="metadataStatus" class="status-badge info">
+                    Analyzing...
+                </span>
+                <a href="/image-intel/download/json" class="btn-download" id="downloadBtn" style="display: none;">
+                    ⬇️ Download JSON
+                </a>
+                <a href="/image-intel/download/pdf" class="btn-download" id="downloadPdfBtn" style="display: none; background:var(--navy); color:#fff; border-color:var(--navy);">
+                    ⬇️ Download PDF Report
+                </a>
+            </div>
+        </div>
+
+        <!-- Alerts -->
+        <div id="alertsContainer"></div>
+
+        <!-- Results Grid -->
+        <div class="row g-4">
+            <!-- Location Intelligence -->
+            <div class="col-lg-6">
+                <div class="intel-card">
+                    <div class="intel-card-header">
+                        <div class="intel-card-icon">📍</div>
+                        <h3 class="intel-card-title">Location Intelligence</h3>
+                    </div>
+                    <div class="intel-card-body">
+                        <div id="locationContent">
+                            <p style="text-align: center; padding: 2rem 0; color: #778da9;">
+                                No GPS data detected in this image
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Device Intelligence -->
+            <div class="col-lg-6">
+                <div class="intel-card">
+                    <div class="intel-card-header">
+                        <div class="intel-card-icon">📱</div>
+                        <h3 class="intel-card-title">Device Intelligence</h3>
+                    </div>
+                    <div class="intel-card-body">
+                        <div id="deviceContent">
+                            <div class="meta-item">
+                                <div class="meta-label">Manufacturer</div>
+                                <div class="meta-value" id="deviceMake">Unknown</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">Device Model</div>
+                                <div class="meta-value" id="deviceModel">Unknown</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">Camera</div>
+                                <div class="meta-value" id="cameraModel">Unknown</div>
+                            </div>
+                            <div class="meta-item" id="lensInfoContainer" style="display: none;">
+                                <div class="meta-label">Lens Information</div>
+                                <div class="meta-value" id="lensInfo">-</div>
+                            </div>
+                            <div class="meta-item" id="softwareContainer" style="display: none;">
+                                <div class="meta-label">Software Used</div>
+                                <div class="meta-value" id="softwareInfo">-</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Time Intelligence -->
+            <div class="col-lg-4">
+                <div class="intel-card">
+                    <div class="intel-card-header">
+                        <div class="intel-card-icon">🕐</div>
+                        <h3 class="intel-card-title">Time Intelligence</h3>
+                    </div>
+                    <div class="intel-card-body">
+                        <div id="timeContent">
+                            <div class="meta-item">
+                                <div class="meta-label">Date Taken</div>
+                                <div class="meta-value highlight" id="dateTaken">Unknown</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">Time Taken</div>
+                                <div class="meta-value" id="timeTaken">Unknown</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">Timezone</div>
+                                <div class="meta-value" id="timezone">Unknown</div>
+                            </div>
+                            <div class="meta-item" id="dateModifiedContainer" style="display: none;">
+                                <div class="meta-label">Date Modified</div>
+                                <div class="meta-value" id="dateModified">-</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- File Intelligence -->
+            <div class="col-lg-4">
+                <div class="intel-card">
+                    <div class="intel-card-header">
+                        <div class="intel-card-icon">📁</div>
+                        <h3 class="intel-card-title">File Intelligence</h3>
+                    </div>
+                    <div class="intel-card-body">
+                        <div id="fileContent">
+                            <div class="meta-item">
+                                <div class="meta-label">File Name</div>
+                                <div class="meta-value" id="fileName" style="word-break: break-all;">-</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">File Size</div>
+                                <div class="meta-value" id="fileSize">-</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">Format</div>
+                                <div class="meta-value" id="fileFormat">-</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">Resolution</div>
+                                <div class="meta-value" id="resolution">-</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">MIME Type</div>
+                                <div class="meta-value" id="mimeType">-</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Metadata Status -->
+            <div class="col-lg-4">
+                <div class="intel-card">
+                    <div class="intel-card-header">
+                        <div class="intel-card-icon">🔒</div>
+                        <h3 class="intel-card-title">Metadata Status</h3>
+                    </div>
+                    <div class="intel-card-body">
+                        <div id="statusContent">
+                            <div class="mb-3">
+                                <span id="metadataStatusCard" class="status-badge info">Analyzing...</span>
+                            </div>
+                            <p id="statusDescription" style="font-size: 0.9rem; line-height: 1.5;">
+                                Metadata analysis in progress...
+                            </p>
+                            <div class="mt-3 pt-3" style="border-top:1px solid #eef2f9;">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span style="font-size:0.84rem;color:#344563;">EXIF Data</span>
+                                    <span id="exifIndicator" style="font-size:0.84rem;color:#7a8ba8;">Unknown</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span style="font-size:0.84rem;color:#344563;">GPS Data</span>
+                                    <span id="gpsIndicator" style="font-size:0.84rem;color:#7a8ba8;">Unknown</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Visual Intelligence ───────────────────────────────────────── -->
+        <div id="visualIntelSection" style="display:none;">
+
+            <!-- Trigger bar -->
+            <div class="vi-trigger-bar">
+                <div>
+                    <div class="vi-trigger-title">🔍 Visual Intelligence — Google Lens</div>
+                    <div class="vi-trigger-sub">Reverse image search · Exact duplicates · Entity recognition · Web indexing</div>
+                </div>
+                <button id="runLensBtn" class="btn-lens" onclick="runLensAnalysis()">
+                    Run Visual Intelligence
+                </button>
+            </div>
+
+            <!-- Loading -->
+            <div id="vi-loading" class="vi-loading">
+                <div class="vi-spinner"></div>
+                <span>Querying Google Lens — this may take a few seconds…</span>
+            </div>
+
+            <!-- Error -->
+            <div id="vi-error" class="vi-error"></div>
+
+            <!-- Results container -->
+            <div id="vi-results"></div>
+
+        </div><!-- /visualIntelSection -->
+
+    </div>
+</div><!-- /ii-wrap -->
+</main>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Image Intelligence Module JavaScript
+    (function() {
+        // DOM Elements
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const uploadProgress = document.getElementById('uploadProgress');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        const previewPanel = document.getElementById('previewPanel');
+        const previewImage = document.getElementById('previewImage');
+        const fileBadge = document.getElementById('fileBadge');
+        const actionPanel = document.getElementById('actionPanel');
+        const fileInfo = document.getElementById('fileInfo');
+        const scanBtn = document.getElementById('scanBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const scanningOverlay = document.getElementById('scanningOverlay');
+        const resultsDashboard = document.getElementById('resultsDashboard');
+        const downloadBtn    = document.getElementById('downloadBtn');
+        const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+
+        let currentFile = null;
+
+        // Drag and Drop handlers
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        // File input change
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        // Handle file selection
+        function handleFile(file) {
+            // Validate file type
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/heic', 'image/webp', 'image/tiff', 'image/bmp', 'image/gif'];
+            const allowedExtensions = ['.jpg', '.jpeg', '.png', '.heic', '.webp', '.tiff', '.tif', '.bmp', '.gif'];
+
+            const ext = '.' + file.name.split('.').pop().toLowerCase();
+            if (!allowedExtensions.includes(ext)) {
+                alert('Invalid file type. Please upload: JPG, PNG, HEIC, WebP, TIFF, BMP, or GIF');
+                return;
+            }
+
+            // Check file size (50MB)
+            if (file.size > 50 * 1024 * 1024) {
+                alert('File too large. Maximum size is 50MB.');
+                return;
+            }
+
+            currentFile = file;
+
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImage.src = e.target.result;
+                previewPanel.classList.add('active');
+                fileBadge.textContent = file.name;
+
+                // Update file info
+                const sizeFormatted = file.size < 1024 * 1024
+                    ? (file.size / 1024).toFixed(1) + ' KB'
+                    : (file.size / (1024 * 1024)).toFixed(1) + ' MB';
+
+                fileInfo.innerHTML = `
+                    <strong style="color: #e0e1dd;">${file.name}</strong><br>
+                    <span style="font-size: 0.85rem;">Size: ${sizeFormatted} | Type: ${file.type || ext.toUpperCase().replace('.', '')}</span>
+                `;
+
+                // Enable scan button
+                scanBtn.disabled = false;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Upload file to server
+        async function uploadFile() {
+            if (!currentFile) return;
+
+            const formData = new FormData();
+            formData.append('image', currentFile);
+
+            // Show progress
+            uploadZone.classList.add('uploading');
+            uploadProgress.classList.add('active');
+
+            try {
+                const response = await fetch('/image-intel/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Upload failed');
+                }
+
+                // Progress complete
+                progressBar.style.width = '100%';
+                progressText.textContent = '100%';
+
+                return result;
+
+            } catch (error) {
+                alert('Upload failed: ' + error.message);
+                throw error;
+            }
+        }
+
+        // Run image analysis
+        async function analyzeImage() {
+            scanningOverlay.classList.add('active');
+
+            try {
+                // First upload
+                await uploadFile();
+
+                // Then analyze
+                const response = await fetch('/image-intel/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Analysis failed');
+                }
+
+                // Display results
+                displayResults(result.metadata);
+
+                // Show results dashboard
+                resultsDashboard.classList.add('active');
+                downloadBtn.style.display    = 'inline-flex';
+                downloadPdfBtn.style.display = 'inline-flex';
+
+                // Reveal the Visual Intelligence trigger
+                showVisualIntelSection();
+
+                // Scroll to results
+                resultsDashboard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            } catch (error) {
+                alert('Analysis failed: ' + error.message);
+            } finally {
+                scanningOverlay.classList.remove('active');
+                uploadZone.classList.remove('uploading');
+                uploadProgress.classList.remove('active');
+                progressBar.style.width = '0%';
+                progressText.textContent = '0%';
+            }
+        }
+
+        // Display analysis results
+        function displayResults(metadata) {
+            // Update status badge
+            const statusBadge = document.getElementById('metadataStatus');
+            statusBadge.className = `status-badge ${metadata.status.level}`;
+            statusBadge.textContent = metadata.status.text;
+
+            // Update status card
+            const statusCard = document.getElementById('metadataStatusCard');
+            statusCard.className = `status-badge ${metadata.status.level}`;
+            statusCard.textContent = metadata.status.text;
+            document.getElementById('statusDescription').textContent = metadata.status.description;
+
+            // Update indicators
+            document.getElementById('exifIndicator').textContent = metadata.has_exif ? '✓ Present' : '✗ None';
+            document.getElementById('exifIndicator').style.color = metadata.has_exif ? '#2ecc71' : '#e74c3c';
+            document.getElementById('gpsIndicator').textContent = metadata.has_gps ? '✓ Present' : '✗ None';
+            document.getElementById('gpsIndicator').style.color = metadata.has_gps ? '#2ecc71' : '#e74c3c';
+
+            // File Info
+            document.getElementById('fileName').textContent = metadata.file.filename;
+            document.getElementById('fileSize').textContent = metadata.file.file_size;
+            document.getElementById('fileFormat').textContent = metadata.file.format;
+            document.getElementById('resolution').textContent = metadata.file.resolution;
+            document.getElementById('mimeType').textContent = metadata.file.mime_type;
+
+            // Device Info
+            document.getElementById('deviceMake').textContent = metadata.device.make;
+            document.getElementById('deviceModel').textContent = metadata.device.model;
+            document.getElementById('cameraModel').textContent = metadata.device.camera_model;
+
+            if (metadata.device.lens_info) {
+                document.getElementById('lensInfo').textContent = metadata.device.lens_info;
+                document.getElementById('lensInfoContainer').style.display = 'block';
+            }
+
+            if (metadata.device.software) {
+                document.getElementById('softwareInfo').textContent = metadata.device.software;
+                document.getElementById('softwareContainer').style.display = 'block';
+            }
+
+            // Time Info
+            document.getElementById('dateTaken').textContent = metadata.timestamps.date_taken;
+            document.getElementById('timeTaken').textContent = metadata.timestamps.time_taken;
+            document.getElementById('timezone').textContent = metadata.timestamps.timezone;
+
+            if (metadata.timestamps.date_modified && metadata.timestamps.date_modified !== 'Unknown') {
+                document.getElementById('dateModified').textContent = metadata.timestamps.date_modified;
+                document.getElementById('dateModifiedContainer').style.display = 'block';
+            }
+
+            // Location Info
+            const locationContent = document.getElementById('locationContent');
+            if (metadata.gps) {
+                locationContent.innerHTML = `
+                    <div class="gps-coordinates">
+                        <div class="meta-label">GPS Coordinates</div>
+                        <div class="coordinate-pair">
+                            <div>
+                                <span class="coord-value">${metadata.gps.latitude.toFixed(6)}°</span>
+                                <div style="font-size: 0.8rem; color: #778da9;">Latitude</div>
+                            </div>
+                            <div>
+                                <span class="coord-value">${metadata.gps.longitude.toFixed(6)}°</span>
+                                <div style="font-size: 0.8rem; color: #778da9;">Longitude</div>
+                            </div>
+                        </div>
+                        ${metadata.gps.altitude ? `
+                        <div class="mt-2">
+                            <span style="color: #778da9; font-size: 0.9rem;">Altitude: ${metadata.gps.altitude.toFixed(1)}m</span>
+                        </div>
+                        ` : ''}
+                    </div>
+                    <div class="text-center mb-3">
+                        <a href="${metadata.gps.google_maps_url}" target="_blank" class="maps-link">
+                            🗺️ Open in Google Maps
+                        </a>
+                    </div>
+                    <div class="mini-map">
+                        <iframe
+                            src="https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d1000!2d${metadata.gps.longitude}!3d${metadata.gps.latitude}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1sen!2s"
+                            allowfullscreen=""
+                            loading="lazy"
+                            referrerpolicy="no-referrer-when-downgrade">
+                        </iframe>
+                    </div>
+                `;
+            } else {
+                locationContent.innerHTML = `
+                    <div class="mini-map-placeholder" style="padding: 3rem 0;">
+                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">📍</div>
+                        <div style="color: #778da9;">No GPS data detected</div>
+                        <div style="font-size: 0.85rem; color: #415a77; margin-top: 0.5rem;">
+                            This image does not contain embedded location coordinates
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Warnings
+            const alertsContainer = document.getElementById('alertsContainer');
+            alertsContainer.innerHTML = '';
+            if (metadata.warnings && metadata.warnings.length > 0) {
+                metadata.warnings.forEach(warning => {
+                    const alert = document.createElement('div');
+                    alert.className = 'intel-alert warning';
+                    alert.innerHTML = `<strong>⚠️ Warning:</strong> ${warning}`;
+                    alertsContainer.appendChild(alert);
+                });
+            }
+        }
+
+        // Clear all data
+        function clearAll() {
+            currentFile = null;
+            fileInput.value = '';
+            previewPanel.classList.remove('active');
+            previewImage.src = '';
+            fileBadge.textContent = 'No file selected';
+            fileInfo.innerHTML = 'No image uploaded yet';
+            scanBtn.disabled = true;
+            resultsDashboard.classList.remove('active');
+            downloadBtn.style.display    = 'none';
+            downloadPdfBtn.style.display = 'none';
+
+            // Reset Visual Intelligence
+            document.getElementById('visualIntelSection').style.display = 'none';
+            document.getElementById('vi-results').innerHTML = '';
+            document.getElementById('vi-error').className = 'vi-error';
+            document.getElementById('vi-loading').className = 'vi-loading';
+            document.getElementById('runLensBtn').disabled = false;
+            document.getElementById('runLensBtn').textContent = 'Run Visual Intelligence';
+
+            // Reset upload zone
+            uploadZone.classList.remove('uploading');
+            uploadProgress.classList.remove('active');
+            progressBar.style.width = '0%';
+            progressText.textContent = '0%';
+
+            // Clear alerts
+            document.getElementById('alertsContainer').innerHTML = '';
+
+            // Reset status
+            const statusBadge = document.getElementById('metadataStatus');
+            statusBadge.className = 'status-badge info';
+            statusBadge.textContent = 'Analyzing...';
+        }
+
+        // Show Visual Intelligence section after EXIF completes
+        function showVisualIntelSection() {
+            document.getElementById('visualIntelSection').style.display = 'block';
+        }
+
+        // Event Listeners
+        scanBtn.addEventListener('click', analyzeImage);
+        clearBtn.addEventListener('click', clearAll);
+
+        // Simulate progress bar during upload
+        function simulateProgress() {
+            let width = 0;
+            const interval = setInterval(() => {
+                if (width >= 90) {
+                    clearInterval(interval);
+                } else {
+                    width += Math.random() * 15;
+                    if (width > 90) width = 90;
+                    progressBar.style.width = width + '%';
+                    progressText.textContent = Math.round(width) + '%';
+                }
+            }, 200);
+            return interval;
+        }
+
+        // Override upload to include progress simulation
+        const originalUpload = uploadFile;
+        uploadFile = async function() {
+            const progressInterval = simulateProgress();
+            try {
+                return await originalUpload.call(this);
+            } finally {
+                clearInterval(progressInterval);
+            }
+        };
+    })();
+
+    /* ════════════════════════════════════════════════════════════════════
+       VISUAL INTELLIGENCE — Google Lens
+       ════════════════════════════════════════════════════════════════════ */
+
+    async function runLensAnalysis() {
+        const btn     = document.getElementById('runLensBtn');
+        const loading = document.getElementById('vi-loading');
+        const errBox  = document.getElementById('vi-error');
+        const results = document.getElementById('vi-results');
+
+        btn.disabled = true;
+        btn.textContent = 'Scanning…';
+        loading.className = 'vi-loading active';
+        errBox.className  = 'vi-error';
+        results.innerHTML = '';
+
+        try {
+            const resp    = await fetch('/api/lens-analyze', { method: 'POST' });
+            const rawText = await resp.text();
+
+            /* ── diagnostic: log status + first 400 chars so we can see server errors ── */
+            console.log('[LensAnalyze] HTTP', resp.status, rawText.substring(0, 400));
+
+            let data;
+            try {
+                data = JSON.parse(rawText);
+            } catch (_) {
+                errBox.innerHTML = `<strong>⚠ Server error (HTTP ${resp.status}):</strong> `
+                    + `The server returned a non-JSON response. `
+                    + `<br><small style="font-family:monospace;opacity:.8;">${esc(rawText.substring(0, 200))}</small>`;
+                errBox.className = 'vi-error active';
+                btn.disabled     = false;
+                btn.textContent  = 'Retry Visual Intelligence';
+                return;
+            }
+
+            if (data.error) {
+                errBox.innerHTML  = `<strong>⚠ Visual Intelligence Error:</strong> ${esc(data.error)}`;
+                errBox.className  = 'vi-error active';
+                btn.disabled      = false;
+                btn.textContent   = 'Retry Visual Intelligence';
+                return;
+            }
+
+            renderLensResults(data, results);
+            btn.textContent = '✓ Analysis Complete';
+
+        } catch (err) {
+            errBox.innerHTML = `<strong>⚠ Request failed:</strong> ${esc(err.message)}`;
+            errBox.className = 'vi-error active';
+            btn.disabled     = false;
+            btn.textContent  = 'Retry Visual Intelligence';
+        } finally {
+            loading.className = 'vi-loading';
+        }
+    }
+
+    function renderLensResults(d, container) {
+        let html = '';
+
+        /* Investigation Summary */
+        if (d.summary) {
+            html += `
+            <div class="vi-summary">
+                <div class="vi-summary-label">🔍 Investigation Summary</div>
+                <div class="vi-summary-text">${esc(d.summary)}</div>
+                ${d.source_url ? `<a href="${esc(d.source_url)}" target="_blank" class="vi-source-btn" style="color:#a8c0e8;border-color:rgba(255,255,255,.2);">View on Google Lens ↗</a>` : ''}
+            </div>`;
+        }
+
+        /* Exact Matches */
+        if (d.exact_matches && d.exact_matches.length) {
+            html += viCard(
+                '🎯 Exact Matches',
+                `${d.exact_matches.length} duplicate${d.exact_matches.length !== 1 ? 's' : ''} found`,
+                renderMatchList(d.exact_matches)
+            );
+        }
+
+        /* Visual Matches */
+        if (d.visual_matches && d.visual_matches.length) {
+            html += viCard(
+                '🖼 Similar Images Found Online',
+                `${d.visual_matches.length} result${d.visual_matches.length !== 1 ? 's' : ''}`,
+                renderMatchList(d.visual_matches)
+            );
+        }
+
+        /* Related Searches */
+        if (d.related_searches && d.related_searches.length) {
+            html += renderRelated(d.related_searches);
+        }
+
+        /* Nothing useful returned */
+        if (!html) {
+            html = `<div style="text-align:center;padding:2.5rem 1rem;color:#7a8ba8;">
+                <div style="font-size:2rem;margin-bottom:0.6rem;">🔍</div>
+                <div style="font-weight:600;">No visual intelligence data returned</div>
+                <div style="font-size:0.85rem;margin-top:0.4rem;">
+                    Google Lens found no indexed matches for this image.
+                </div>
+            </div>`;
+        }
+
+        container.innerHTML = html;
+    }
+
+    /* ── Section builders ─────────────────────────────────────────────────── */
+
+    function viCard(title, badge, bodyHtml) {
+        return `
+        <div class="vi-card">
+            <div class="vi-card-head">
+                <span class="vi-card-head-title">${title}</span>
+                ${badge ? `<span class="vi-card-head-badge">${esc(badge)}</span>` : ''}
+            </div>
+            <div class="vi-card-body">${bodyHtml}</div>
+        </div>`;
+    }
+
+    function renderMatchList(matches) {
+        const shown = matches.slice(0, 40);
+        let rows = shown.map(m => {
+            /* thumbnail and image are plain URL strings per the API schema */
+            const thumbSrc = m.thumbnail || m.image || '';
+            const thumbHtml = thumbSrc
+                ? `<img class="vi-match-thumb" src="${esc(thumbSrc)}" onerror="this.style.display='none'" loading="lazy">`
+                : `<div class="vi-match-thumb" style="background:#eef2f9;display:flex;align-items:center;justify-content:center;color:#7a8ba8;font-size:1.3rem;">🖼</div>`;
+            const price = m.price ? `<span style="font-size:0.75rem;color:#1a7a3a;font-weight:700;"> · ${esc(m.price)}</span>` : '';
+            const stock = m.in_stock === false ? `<span style="font-size:0.7rem;color:#dc3545;"> · Out of stock</span>` : '';
+            return `
+            <div class="vi-match-item">
+                ${thumbHtml}
+                <div class="vi-match-info">
+                    <div class="vi-match-title" title="${esc(m.title)}">${esc(m.title || '(no title)')}</div>
+                    <div class="vi-match-source">${esc(m.source)}${price}${stock}</div>
+                </div>
+                ${m.link ? `<a href="${esc(m.link)}" target="_blank" rel="noopener" class="vi-match-link">View ↗</a>` : ''}
+            </div>`;
+        }).join('');
+        if (matches.length > shown.length) {
+            rows += `<div style="font-size:0.8rem;color:#64748b;padding:0.5rem 0.2rem;">… and ${matches.length - shown.length} more results</div>`;
+        }
+        return `<div class="vi-match-list">${rows}</div>`;
+    }
+
+    function renderKnowledgeGraph(kg) {
+        const imgHtml = kg.image
+            ? `<img class="vi-kg-img" src="${esc(kg.image)}" onerror="this.style.display='none'" loading="lazy">`
+            : '';
+        const rows = [
+            ['Entity',      kg.title],
+            ['Type',        kg.type],
+            ['Source',      kg.source_name],
+        ].filter(([, v]) => v).map(([k, v]) => `
+            <div class="mb-2">
+                <div class="vi-kv-label">${k}</div>
+                <div class="vi-kv-val">${esc(v)}</div>
+            </div>`).join('');
+        const desc = kg.description
+            ? `<div class="mt-2" style="font-size:0.86rem;color:#344563;line-height:1.55;">${esc(kg.description)}</div>`
+            : '';
+        const link = kg.source_link
+            ? `<a href="${esc(kg.source_link)}" target="_blank" rel="noopener" class="vi-source-btn mt-2">Read More ↗</a>`
+            : '';
+        const body = `<div class="vi-kg-body">${imgHtml}<div style="flex:1">${rows}${desc}${link}</div></div>`;
+        return viCard('🧠 Entity Recognition (Knowledge Graph)', '', body);
+    }
+
+    function renderEntities(entities) {
+        const chips = entities.map(e => {
+            const label = e.type ? `${esc(e.name)} <span style="opacity:.65;font-weight:500;">(${esc(e.type)})</span>` : esc(e.name);
+            return e.link
+                ? `<a href="${esc(e.link)}" target="_blank" rel="noopener" class="vi-chip">${label}</a>`
+                : `<span class="vi-chip">${label}</span>`;
+        }).join('');
+        return viCard('🏷 Recognized Entities', `${entities.length} detected`,
+            `<div style="padding:0.25rem 0;">${chips}</div>`);
+    }
+
+    function renderProducts(products) {
+        const cards = products.slice(0, 20).map(p => {
+            const thumb = p.thumbnail
+                ? `<img class="vi-product-thumb" src="${esc(p.thumbnail)}" onerror="this.style.display='none'" loading="lazy">`
+                : `<div class="vi-product-thumb" style="display:flex;align-items:center;justify-content:center;color:#7a8ba8;font-size:2rem;">🛍</div>`;
+            const price  = p.price  ? `<div class="vi-product-price">${esc(p.price)}</div>` : '';
+            const rating = p.rating ? `<span style="color:#f59e0b;font-size:0.75rem;">★ ${p.rating}</span>` : '';
+            const link   = p.link
+                ? `<a href="${esc(p.link)}" target="_blank" rel="noopener" style="font-size:0.7rem;color:var(--navy);">Buy →</a>`
+                : '';
+            return `
+            <div class="vi-product-card">
+                ${thumb}
+                <div class="vi-product-info">
+                    <div class="vi-product-title" title="${esc(p.title)}">${esc(p.title)}</div>
+                    ${price}
+                    <div class="vi-product-source">${rating} ${esc(p.source)} ${link}</div>
+                </div>
+            </div>`;
+        }).join('');
+        return viCard('🛍 Product Matches', `${products.length} detected`,
+            `<div class="vi-product-grid">${cards}</div>`);
+    }
+
+    function renderRelated(related) {
+        const chips = related.map(r =>
+            r.link
+                ? `<a href="${esc(r.link)}" target="_blank" rel="noopener" class="vi-chip">${esc(r.query)}</a>`
+                : `<span class="vi-chip">${esc(r.query)}</span>`
+        ).join('');
+        return viCard('🔗 Related Visual Context', `${related.length} queries`,
+            `<div style="padding:0.25rem 0;">${chips}</div>`);
+    }
+
+    function renderInlineImages(images) {
+        const imgs = images.map(img => {
+            const tag = img.link
+                ? `<a href="${esc(img.link)}" target="_blank" rel="noopener"><img class="vi-img-item" src="${esc(img.src)}" onerror="this.style.display='none'" loading="lazy" title="${esc(img.source)}"></a>`
+                : `<img class="vi-img-item" src="${esc(img.src)}" onerror="this.style.display='none'" loading="lazy">`;
+            return tag;
+        }).join('');
+        return viCard('🗂 Indexed Image References', `${images.length} found`,
+            `<div class="vi-img-grid">${imgs}</div>`);
+    }
+
+    function renderAdditional(additional) {
+        const rows = Object.entries(additional).map(([k, v]) => {
+            const label = k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+            const val   = typeof v === 'object' ? JSON.stringify(v, null, 2) : String(v);
+            return `<div class="mb-2"><div class="vi-kv-label">${esc(label)}</div><div class="vi-kv-val" style="white-space:pre-wrap;font-size:0.8rem;">${esc(val.slice(0,400))}</div></div>`;
+        }).join('');
+        return viCard('📋 Additional Intelligence Fields', '', rows);
+    }
+
+    function esc(s) {
+        return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,1436 @@
+{% extends "base.html" %}
+{% block title %}AI OR NOT — Deepfake Detection — OSINT Portal{% endblock %}
+
+{% block extra_css %}
+
+/* ── Panel Cards ── */
+.ao-panel {
+    background: #fff;
+    border: 1px solid #d3deef;
+    border-radius: 14px;
+    box-shadow: 0 8px 20px rgba(6,41,82,.07);
+    overflow: hidden;
+}
+.ao-panel-head {
+    background: linear-gradient(135deg, #062952, #0c3f7b);
+    color: #fff;
+    padding: 0.75rem 1rem;
+    font-size: 0.88rem;
+    font-weight: 700;
+    letter-spacing: .02em;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.ao-panel-body { padding: 1rem 1.1rem; }
+
+
+/* ── Upload Zone ── */
+.ao-upload-zone {
+    border: 2px dashed #9eb3d2;
+    border-radius: 12px;
+    padding: 2.5rem 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+    position: relative;
+    overflow: hidden;
+    background: #f8fbff;
+}
+.ao-upload-zone:hover, .ao-upload-zone.dragover {
+    border-color: #062952;
+    background: #eef4ff;
+}
+.ao-upload-zone.dragover { border-color: #f3c14b; }
+.ao-upload-zone.uploading { border-color: #cab58a; }
+.ao-upload-icon {
+    font-size: 2.2rem; margin-bottom: 0.6rem;
+    color: #6a8ab8;
+}
+.ao-upload-text {
+    font-size: 0.9rem; color: #3a4f6a; font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+.ao-upload-sub { font-size: 0.78rem; color: #6a7f9e; }
+.ao-upload-btn {
+    display: inline-block;
+    margin-top: 0.8rem;
+    padding: 0.38rem 1.2rem;
+    background: #062952; color: #fff;
+    border: 0; border-radius: 8px;
+    font-size: 0.85rem; font-weight: 600;
+    cursor: pointer;
+    transition: background .15s;
+}
+.ao-upload-btn:hover { background: #0f4687; }
+
+/* Scan line animation during upload */
+@keyframes ao-scan {
+    0%   { top: -4px; }
+    100% { top: 100%; }
+}
+.ao-scan-line {
+    display: none;
+    position: absolute;
+    left: 0; right: 0; top: -4px;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #f3c14b, transparent);
+    animation: ao-scan 1.4s linear infinite;
+}
+.ao-upload-zone.scanning .ao-scan-line { display: block; }
+.ao-upload-zone.scanning { border-color: #f3c14b; }
+
+/* ── Media Preview ── */
+.ao-preview-card {
+    display: none;
+    margin-top: 0.75rem;
+    border: 1px solid #c4d6f0;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #f8fbff;
+}
+.ao-preview-card.visible { display: block; }
+.ao-preview-header {
+    background: linear-gradient(135deg, #062952, #0c3f7b);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    padding: 0.4rem 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.ao-preview-body {
+    padding: 0.6rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f0f4fb;
+    min-height: 100px;
+}
+.ao-preview-body img {
+    max-width: 100%; max-height: 220px;
+    object-fit: contain;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(6,41,82,.12);
+}
+.ao-preview-body video {
+    max-width: 100%; max-height: 220px;
+    border-radius: 6px;
+}
+.ao-preview-body audio { width: 100%; }
+
+/* ── File Info strip ── */
+.ao-file-info {
+    display: none;
+    background: #edf3fd;
+    border: 1px solid #c4d6f0;
+    border-radius: 8px;
+    padding: 0.55rem 0.9rem;
+    font-size: 0.83rem;
+    color: #1a3560;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.7rem;
+}
+.ao-file-info.visible { display: flex; }
+.ao-file-icon { font-size: 1.1rem; }
+.ao-file-name { font-weight: 700; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ao-file-size { color: #4a6a9e; white-space: nowrap; }
+
+/* ── Analyze Button ── */
+.btn-analyze {
+    width: 100%; margin-top: 0.8rem;
+    padding: 0.6rem;
+    background: linear-gradient(135deg, #062952, #0c3f7b);
+    color: #fff; border: 0; border-radius: 10px;
+    font-size: 0.92rem; font-weight: 700;
+    letter-spacing: .02em;
+    cursor: pointer;
+    transition: opacity .15s, box-shadow .15s;
+    box-shadow: 0 4px 12px rgba(6,41,82,.2);
+    position: relative; overflow: hidden;
+}
+.btn-analyze:disabled {
+    opacity: 0.45; cursor: not-allowed; box-shadow: none;
+}
+.btn-analyze:not(:disabled):hover { box-shadow: 0 6px 18px rgba(6,41,82,.3); }
+
+/* ── Formats card ── */
+.ao-formats {
+    background: #f8fbff;
+    border: 1px solid #d3deef;
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    margin-top: 1rem;
+    font-size: 0.82rem;
+}
+.ao-formats-title { font-weight: 700; color: #062952; margin-bottom: 0.4rem; font-size: 0.8rem; text-transform: uppercase; letter-spacing: .05em; }
+.ao-format-row { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.25rem; }
+.ao-fmt-badge {
+    background: #e8eef8; color: #2a4a7e;
+    border-radius: 5px; padding: 0.15rem 0.5rem;
+    font-size: 0.75rem; font-weight: 700;
+}
+
+/* ── Gauge ── */
+.ao-gauge-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1.2rem 0.5rem;
+}
+.ao-gauge-svg { overflow: visible; }
+.ao-gauge-track { fill: none; stroke: #e8eef8; stroke-width: 9; }
+.ao-gauge-ring  { fill: none; stroke-width: 9; stroke-linecap: round;
+    transform: rotate(-90deg); transform-origin: 60px 60px;
+    transition: stroke-dashoffset 1.2s cubic-bezier(.25,.46,.45,.94); }
+.ao-gauge-pct   { font-size: 18px; font-weight: 800; fill: #062952; }
+.ao-gauge-label { font-size: 9px; font-weight: 700; fill: #6a7f9e; letter-spacing: .06em; text-transform: uppercase; }
+
+/* ── Generator Bars ── */
+.ao-gen-row { margin-bottom: 0.7rem; }
+.ao-gen-top { display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 0.22rem; }
+.ao-gen-name { font-weight: 600; color: #1a2e4a; }
+.ao-gen-pct  { font-weight: 800; color: #062952; }
+.ao-gen-track {
+    background: #e8eef8; border-radius: 999px; height: 7px; overflow: hidden;
+}
+.ao-gen-bar {
+    height: 100%; border-radius: 999px;
+    background: linear-gradient(90deg, #062952, #2a6fbd);
+    width: 0%;
+    transition: width 1s cubic-bezier(.25,.46,.45,.94);
+}
+.ao-gen-bar.deepfake-bar {
+    background: linear-gradient(90deg, #7c0000, #dc2626);
+}
+
+/* ── Summary table ── */
+.ao-summary-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.45rem 0;
+    border-bottom: 1px solid #edf1f9;
+    font-size: 0.85rem;
+}
+.ao-summary-row:last-child { border-bottom: 0; }
+.ao-summary-key { color: #4a5568; font-weight: 600; }
+.ao-summary-val { font-weight: 700; color: #1a2e4a; text-align: right; }
+
+/* Verdict pill */
+.verdict-pill {
+    display: inline-block;
+    padding: 0.22rem 0.9rem;
+    border-radius: 999px;
+    font-size: 0.78rem; font-weight: 800;
+    letter-spacing: .06em; text-transform: uppercase;
+}
+.verdict-ai      { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+.verdict-human   { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+.verdict-unknown { background: #f3f4f6; color: #6b7280; border: 1px solid #d1d5db; }
+
+/* ── Assessment card ── */
+.ao-assess-text {
+    font-size: 0.88rem; color: #2d3748; line-height: 1.65;
+    margin-bottom: 0.9rem;
+}
+.ao-rec-list { list-style: none; padding: 0; margin: 0; }
+.ao-rec-list li {
+    font-size: 0.84rem; color: #2d3748; padding: 0.3rem 0;
+    display: flex; align-items: flex-start; gap: 0.45rem;
+}
+.ao-rec-bullet {
+    width: 18px; height: 18px; min-width: 18px;
+    border-radius: 50%; background: #062952; color: #fff;
+    font-size: 0.6rem; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    margin-top: 1px;
+}
+
+/* ── Shimmer placeholder ── */
+@keyframes ao-shimmer {
+    0%   { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+}
+.ao-shimmer {
+    background: linear-gradient(90deg, #edf1f9 25%, #dce5f5 50%, #edf1f9 75%);
+    background-size: 800px 100%;
+    animation: ao-shimmer 1.5s infinite linear;
+    border-radius: 6px;
+}
+.ao-placeholder-gauge {
+    display: flex; flex-direction: column; align-items: center; padding: 1.2rem 0.5rem;
+}
+.ao-placeholder-circle {
+    width: 110px; height: 110px; border-radius: 50%;
+    border: 9px solid #e8eef8;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 0.5rem;
+}
+.ao-placeholder-pct { font-size: 1.4rem; font-weight: 800; color: #c5cfde; }
+.ao-placeholder-lbl { font-size: 0.72rem; font-weight: 700; color: #a0aec0; text-transform: uppercase; }
+
+/* ── Status bar ── */
+.ao-status-bar {
+    background: #edf7ee; border: 1px solid #b7e5c6;
+    border-radius: 8px; padding: 0.5rem 0.9rem;
+    font-size: 0.84rem; color: #1f7a3f;
+    display: flex; align-items: center; gap: 0.45rem;
+    margin-bottom: 1.2rem;
+}
+.ao-error-bar {
+    background: #fef2f2; border: 1px solid #fca5a5;
+    border-radius: 8px; padding: 0.5rem 0.9rem;
+    font-size: 0.84rem; color: #991b1b;
+    display: flex; align-items: center; gap: 0.45rem;
+    margin-bottom: 1.2rem;
+    display: none;
+}
+
+/* ── Processing Status ── */
+.proc-row { display:flex; align-items:center; gap:0.5rem; padding:0.35rem 0; border-bottom:1px solid #edf1f9; font-size:0.83rem; }
+.proc-row:last-child { border-bottom:0; }
+.proc-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.proc-dot.processed { background:#059669; }
+.proc-dot.rejected  { background:#d97706; }
+.proc-dot.errored   { background:#dc2626; }
+.proc-dot.pending   { background:#9ca3af; }
+.proc-label { color:#4a5568; font-weight:600; flex:1; }
+.proc-val   { font-weight:700; font-size:0.78rem; text-transform:capitalize; }
+.proc-val.processed { color:#059669; }
+.proc-val.rejected  { color:#d97706; }
+.proc-val.errored   { color:#dc2626; }
+
+/* ── NSFW / Quality badges ── */
+.ao-detect-badge {
+    display:inline-flex; align-items:center; gap:0.35rem;
+    padding:0.3rem 0.8rem; border-radius:999px;
+    font-size:0.8rem; font-weight:800; letter-spacing:.04em; text-transform:uppercase;
+}
+.badge-safe     { background:#d1fae5; color:#065f46; border:1px solid #6ee7b7; }
+.badge-detected { background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; }
+.badge-suitable { background:#d1fae5; color:#065f46; border:1px solid #6ee7b7; }
+.badge-unsuitable { background:#fef3c7; color:#92400e; border:1px solid #fcd34d; }
+.badge-unknown  { background:#f3f4f6; color:#6b7280; border:1px solid #d1d5db; }
+
+/* ── Reverse Search ── */
+.rs-match {
+    border:1px solid #d3deef; border-radius:10px; padding:0.75rem 0.9rem; margin-bottom:0.6rem;
+    background:#f8fbff;
+}
+.rs-match:last-child { margin-bottom:0; }
+.rs-domain { font-weight:700; color:#062952; font-size:0.9rem; margin-bottom:0.3rem; }
+.rs-row { display:flex; justify-content:space-between; font-size:0.82rem; padding:0.18rem 0; }
+.rs-key { color:#4a5568; }
+.rs-val { font-weight:600; color:#1a2e4a; }
+.rs-link { color:#2a6fbd; text-decoration:none; font-weight:600; font-size:0.82rem; }
+.rs-link:hover { text-decoration:underline; }
+.rs-found-badge {
+    display:inline-block; padding:0.22rem 0.8rem; border-radius:999px;
+    font-size:0.78rem; font-weight:800; letter-spacing:.05em;
+}
+.rs-found-yes { background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; }
+.rs-found-no  { background:#d1fae5; color:#065f46; border:1px solid #6ee7b7; }
+
+/* ── Meta Intelligence ── */
+.meta-grid { display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; }
+.meta-item { background:#f8fbff; border:1px solid #dce8f8; border-radius:8px; padding:0.5rem 0.7rem; }
+.meta-item-label { font-size:0.72rem; font-weight:700; color:#6a8ab8; text-transform:uppercase; letter-spacing:.04em; margin-bottom:0.15rem; }
+.meta-item-val { font-size:0.87rem; font-weight:700; color:#1a2e4a; word-break:break-all; }
+
+/* ── Deepfake ROI notice ── */
+.roi-notice {
+    font-size:0.73rem; font-weight:700; color:#991b1b;
+    background:#fef2f2; border-top:1px solid #fca5a5;
+    padding:0.35rem 0.75rem; text-align:center; letter-spacing:.02em;
+}
+
+/* ── Fade-in stagger for result cards ── */
+@keyframes ao-fadein {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.ao-result-card {
+    animation: ao-fadein .45s ease both;
+}
+.ao-result-card:nth-child(1) { animation-delay: .0s; }
+.ao-result-card:nth-child(2) { animation-delay: .1s; }
+.ao-result-card:nth-child(3) { animation-delay: .2s; }
+.ao-result-card:nth-child(4) { animation-delay: .3s; }
+{% endblock %}
+
+{% block content %}
+<div class="container pb-5 pt-4">
+
+    <!-- ── Page title ── -->
+    <div style="
+        display:flex; align-items:center; gap:1.1rem;
+        padding: 1.1rem 1.4rem;
+        margin-bottom: 1.6rem;
+        background: linear-gradient(120deg, #041d39 0%, #0a3566 55%, #0f4a8a 100%);
+        border-radius: 16px;
+        border-left: 5px solid #f3c14b;
+        box-shadow: 0 6px 24px rgba(6,41,82,.18);
+        position: relative;
+        overflow: hidden;
+        max-width: 680px;
+    ">
+        <!-- decorative shimmer strip -->
+        <div style="position:absolute;top:0;right:0;width:220px;height:100%;
+                    background:linear-gradient(120deg,transparent,rgba(243,193,75,.07),transparent);
+                    pointer-events:none;"></div>
+        <!-- icon -->
+        <div style="
+            width:48px; height:48px; border-radius:12px; flex-shrink:0;
+            background:linear-gradient(135deg,#f3c14b,#e6a817);
+            display:flex; align-items:center; justify-content:center;
+            box-shadow:0 3px 10px rgba(243,193,75,.35);
+        ">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="#041d39" viewBox="0 0 16 16">
+                <path d="M1.5 2A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2h-13zm7 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm3 0a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0zm-7 3a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0zm-2 0a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0z"/>
+            </svg>
+        </div>
+        <!-- text -->
+        <div>
+            <div style="display:flex;align-items:center;gap:0.6rem;flex-wrap:wrap;">
+                <span style="font-size:1.25rem;font-weight:800;color:#fff;letter-spacing:.01em;line-height:1.2;">AI OR NOT</span>
+                <span style="
+                    background:#f3c14b;color:#041d39;
+                    font-size:0.68rem;font-weight:900;
+                    letter-spacing:.12em;text-transform:uppercase;
+                    border-radius:6px;padding:0.18rem 0.65rem;
+                    vertical-align:middle;
+                ">Deepfake Detection</span>
+            </div>
+            <div style="font-size:0.82rem;color:#b8cef0;margin-top:0.22rem;font-weight:400;">
+                Forensic AI-generated media detection &mdash; images &amp; video
+            </div>
+        </div>
+    </div>
+
+    <div class="ao-status-bar" id="ao-session-bar">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
+        </svg>
+        Analysis results are audit-logged. Do not submit files containing sensitive personal data without case authorisation.
+    </div>
+    <div class="ao-error-bar" id="ao-error-bar">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+        </svg>
+        <span id="ao-error-msg"></span>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- ═══════════════ LEFT PANEL ═══════════════ -->
+        <div class="col-lg-5">
+
+            <!-- Upload card -->
+            <div class="ao-panel mt-0">
+                <div class="ao-panel-head">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                        <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/>
+                    </svg>
+                    Upload Media
+                </div>
+                <div class="ao-panel-body">
+                    <input type="file" id="ao-file-input" style="display:none"
+                        accept=".jpg,.jpeg,.png,.webp,.gif,.mp4,.mp3">
+
+                    <div class="ao-upload-zone" id="ao-upload-zone"
+                         onclick="document.getElementById('ao-file-input').click()"
+                         ondragover="handleDragOver(event)"
+                         ondragleave="handleDragLeave(event)"
+                         ondrop="handleDrop(event)">
+                        <div class="ao-scan-line" id="ao-scan-line"></div>
+                        <div class="ao-upload-icon" id="ao-upload-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M4.406 1.342A5.53 5.53 0 0 1 8 0c2.69 0 4.923 2 5.166 4.579C14.758 4.804 16 6.137 16 7.773 16 9.569 14.502 11 12.687 11H10a.5.5 0 0 1 0-1h2.688C13.979 10 15 8.988 15 7.773c0-1.216-1.02-2.228-2.313-2.228h-.5v-.5C12.188 2.825 10.328 1 8 1a4.53 4.53 0 0 0-2.941 1.1c-.757.652-1.153 1.438-1.153 2.055v.448l-.445.049C2.064 4.805 1 5.952 1 7.318 1 8.785 2.23 10 3.781 10H6a.5.5 0 0 1 0 1H3.781C1.708 11 0 9.366 0 7.318c0-1.763 1.266-3.223 2.942-3.524C3.059 2.699 3.623 1.945 4.406 1.342z"/>
+                                <path d="M6.646 8.646a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L7.5 10.207V14.5a.5.5 0 0 1-1 0v-4.293l-1.146 1.147a.5.5 0 1 1-.708-.708l2-2z"/>
+                            </svg>
+                        </div>
+                        <div class="ao-upload-text" id="ao-upload-text">Drag file here</div>
+                        <div class="ao-upload-sub" id="ao-upload-sub">or click to browse</div>
+                    </div>
+
+                    <!-- Media preview -->
+                    <div class="ao-preview-card" id="ao-preview-card">
+                        <div class="ao-preview-header">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
+                                <path d="M2.002 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2h-12zm12 1a1 1 0 0 1 1 1v6.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12V3a1 1 0 0 1 1-1h12z"/>
+                            </svg>
+                            Evidence Preview
+                        </div>
+                        <div class="ao-preview-body" id="ao-preview-body"></div>
+                    </div>
+
+                    <!-- File info strip -->
+                    <div class="ao-file-info" id="ao-file-info">
+                        <span class="ao-file-icon">📄</span>
+                        <span class="ao-file-name" id="ao-file-name"></span>
+                        <span class="ao-file-size" id="ao-file-size"></span>
+                        <span style="cursor:pointer;color:#6a7f9e;margin-left:auto;" onclick="clearFile()" title="Remove file">✕</span>
+                    </div>
+
+                    <!-- Analyze button -->
+                    <button class="btn-analyze" id="btn-analyze" disabled onclick="startAnalysis()">
+                        <span id="btn-analyze-text">Select a file to begin</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Supported formats -->
+            <div class="ao-formats">
+                <div class="ao-formats-title">Supported Formats</div>
+                <div style="font-size:0.78rem;color:#4a5568;margin-bottom:0.3rem;">Image</div>
+                <div class="ao-format-row">
+                    <span class="ao-fmt-badge">JPG</span>
+                    <span class="ao-fmt-badge">PNG</span>
+                    <span class="ao-fmt-badge">WEBP</span>
+                    <span class="ao-fmt-badge">GIF</span>
+                </div>
+                <div style="font-size:0.78rem;color:#4a5568;margin:0.4rem 0 0.3rem;">Video</div>
+                <div class="ao-format-row">
+                    <span class="ao-fmt-badge">MP4</span>
+                </div>
+                <div style="font-size:0.78rem;color:#4a5568;margin:0.4rem 0 0.3rem;">Audio</div>
+                <div class="ao-format-row">
+                    <span class="ao-fmt-badge">MP3</span>
+                </div>
+                <div style="font-size:0.75rem;color:#7a8fa6;margin-top:0.5rem;">Max file size: 50 MB</div>
+            </div>
+
+        </div>
+
+        <!-- ═══════════════ RIGHT PANEL ═══════════════ -->
+        <div class="col-lg-7" id="right-panel">
+
+            <!-- Gauge row -->
+            <div class="row g-3 mb-3">
+
+                <!-- AI Gauge -->
+                <div class="col-6">
+                    <div class="ao-panel" id="gauge-ai-card">
+                        <div class="ao-panel-head" style="padding:0.6rem 1rem;font-size:0.8rem;">AI Detection</div>
+                        <div id="gauge-ai-placeholder" class="ao-placeholder-gauge">
+                            <div class="ao-placeholder-circle">
+                                <span class="ao-placeholder-pct">--%</span>
+                            </div>
+                            <span class="ao-placeholder-lbl">AI</span>
+                        </div>
+                        <div id="gauge-ai-result" class="ao-gauge-wrap" style="display:none;">
+                            <svg class="ao-gauge-svg" width="120" height="120" viewBox="0 0 120 120">
+                                <circle class="ao-gauge-track" cx="60" cy="60" r="50"/>
+                                <circle class="ao-gauge-ring" id="ring-ai" cx="60" cy="60" r="50"
+                                    stroke="#062952"
+                                    stroke-dasharray="314.16" stroke-dashoffset="314.16"/>
+                                <text x="60" y="55" text-anchor="middle" class="ao-gauge-pct" id="pct-ai">0%</text>
+                                <text x="60" y="70" text-anchor="middle" class="ao-gauge-label">AI</text>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Deepfake Gauge -->
+                <div class="col-6">
+                    <div class="ao-panel" id="gauge-df-card">
+                        <div class="ao-panel-head" style="padding:0.6rem 1rem;font-size:0.8rem;">Deepfake Risk</div>
+                        <div id="gauge-df-placeholder" class="ao-placeholder-gauge">
+                            <div class="ao-placeholder-circle">
+                                <span class="ao-placeholder-pct">--%</span>
+                            </div>
+                            <span class="ao-placeholder-lbl">Deepfake</span>
+                        </div>
+                        <div id="gauge-df-result" class="ao-gauge-wrap" style="display:none;">
+                            <svg class="ao-gauge-svg" width="120" height="120" viewBox="0 0 120 120">
+                                <circle class="ao-gauge-track" cx="60" cy="60" r="50"/>
+                                <circle class="ao-gauge-ring" id="ring-df" cx="60" cy="60" r="50"
+                                    stroke="#dc2626"
+                                    stroke-dasharray="314.16" stroke-dashoffset="314.16"/>
+                                <text x="60" y="55" text-anchor="middle" class="ao-gauge-pct" id="pct-df">0%</text>
+                                <text x="60" y="70" text-anchor="middle" class="ao-gauge-label">Deepfake</text>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Breakdown -->
+            <div class="ao-panel mb-3" id="breakdown-card" style="display:none;">
+                <div class="ao-panel-head">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M0 0h1v15h15v1H0V0zm14.817 3.113a.5.5 0 0 1 .07.704l-4.5 5.5a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61 4.15-5.073a.5.5 0 0 1 .704-.07z"/>
+                    </svg>
+                    Data Breakdown
+                    <span id="breakdown-subtitle" style="font-size:0.72rem;font-weight:400;color:#b8cef0;margin-left:auto;">Generator confidence scores</span>
+                </div>
+                <div class="ao-panel-body" id="breakdown-body">
+                    <div style="text-align:center;padding:1.5rem 0;color:#8a9bb5;font-size:0.88rem;">
+                        <div style="font-size:1.4rem;margin-bottom:0.4rem;">📊</div>
+                        Upload a file and run analysis to see generator breakdown.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detection Summary -->
+            <div class="ao-panel mb-3" id="summary-card" style="display:none;">
+                <div class="ao-panel-head">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+                        <path d="M10.97 4.97a.75.75 0 0 1 1.071 1.05l-3.992 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.235.235 0 0 1 .02-.022z"/>
+                    </svg>
+                    Detection Summary
+                </div>
+                <div class="ao-panel-body" id="summary-body">
+                    <div style="text-align:center;padding:1.5rem 0;color:#8a9bb5;font-size:0.88rem;">
+                        <div style="font-size:1.4rem;margin-bottom:0.4rem;">🔍</div>
+                        Detection results will appear here after analysis.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Deepfake Analysis -->
+            <div class="ao-panel mb-3" id="deepfake-card" style="display:none;">
+                <div class="ao-panel-head">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
+                    </svg>
+                    Deepfake Analysis
+                </div>
+                <div class="ao-panel-body" id="deepfake-body">
+                    <div style="text-align:center;padding:1.2rem 0;color:#8a9bb5;font-size:0.88rem;">
+                        <div style="font-size:1.3rem;margin-bottom:0.3rem;">🎭</div>
+                        Deepfake analysis will appear after processing.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Media Intelligence -->
+            <div class="ao-panel mb-3" id="meta-card" style="display:none;">
+                <div class="ao-panel-head">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
+                        <path d="M2.002 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2h-12zm12 1a1 1 0 0 1 1 1v6.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12V3a1 1 0 0 1 1-1h12z"/>
+                    </svg>
+                    Media Intelligence
+                </div>
+                <div class="ao-panel-body" id="meta-body">
+                    <div style="text-align:center;padding:1.2rem 0;color:#8a9bb5;font-size:0.88rem;">
+                        <div style="font-size:1.3rem;margin-bottom:0.3rem;">📁</div>
+                        File metadata will appear after analysis.
+                    </div>
+                </div>
+            </div>
+
+            <!-- NSFW + Quality row -->
+            <div class="row g-3 mb-3" id="nsfw-quality-row" style="display:none;">
+                <div class="col-6">
+                    <div class="ao-panel h-100" id="nsfw-card">
+                        <div class="ao-panel-head" style="font-size:0.8rem;padding:0.6rem 1rem;">Sensitive Content</div>
+                        <div class="ao-panel-body text-center" id="nsfw-body" style="padding:1rem;">
+                            <div style="color:#8a9bb5;font-size:0.82rem;">Awaiting analysis</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="ao-panel h-100" id="quality-card">
+                        <div class="ao-panel-head" style="font-size:0.8rem;padding:0.6rem 1rem;">Quality Assessment</div>
+                        <div class="ao-panel-body text-center" id="quality-body" style="padding:1rem;">
+                            <div style="color:#8a9bb5;font-size:0.82rem;">Awaiting analysis</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Processing Status -->
+            <div class="ao-panel mb-3" id="proc-card" style="display:none;">
+                <div class="ao-panel-head">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71V3.5z"/>
+                        <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z"/>
+                    </svg>
+                    Processing Status
+                </div>
+                <div class="ao-panel-body" id="proc-body">
+                    <div style="text-align:center;padding:1rem;color:#8a9bb5;font-size:0.82rem;">Awaiting analysis</div>
+                </div>
+            </div>
+
+            <!-- Reverse Search Intelligence -->
+            <div class="ao-panel mb-3" id="reverse-card" style="display:none;">
+                <div class="ao-panel-head">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.099zm-5.242 1.656a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11z"/>
+                    </svg>
+                    Reverse Search Intelligence
+                    <span id="rs-found-indicator" style="margin-left:auto;"></span>
+                </div>
+                <div class="ao-panel-body" id="reverse-body">
+                    <div style="text-align:center;padding:1.2rem 0;color:#8a9bb5;font-size:0.88rem;">
+                        <div style="font-size:1.3rem;margin-bottom:0.3rem;">🔎</div>
+                        Reverse search results will appear after analysis.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Investigative Assessment -->
+            <div class="ao-panel" id="assess-card" style="display:none;">
+                <div class="ao-panel-head">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
+                    </svg>
+                    Forensic Executive Summary
+                </div>
+                <div class="ao-panel-body" id="assess-body">
+                    <div style="text-align:center;padding:1.5rem 0;color:#8a9bb5;font-size:0.88rem;">
+                        <div style="font-size:1.4rem;margin-bottom:0.4rem;">📋</div>
+                        Officer-grade assessment will be generated after analysis.
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /right panel -->
+    </div><!-- /row -->
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── State ──
+let selectedFile   = null;
+let isAnalyzing    = false;
+let _previewObjUrl = null;  // track blob URL for revocation
+
+
+// ── Drag & Drop ──
+function handleDragOver(e) {
+    e.preventDefault();
+    document.getElementById('ao-upload-zone').classList.add('dragover');
+}
+function handleDragLeave(e) {
+    document.getElementById('ao-upload-zone').classList.remove('dragover');
+}
+function handleDrop(e) {
+    e.preventDefault();
+    document.getElementById('ao-upload-zone').classList.remove('dragover');
+    const files = e.dataTransfer.files;
+    if (files.length) processFile(files[0]);
+}
+
+// ── File Input ──
+document.getElementById('ao-file-input').addEventListener('change', function() {
+    if (this.files.length) processFile(this.files[0]);
+});
+
+function processFile(file) {
+    const allowed = ['image/jpeg','image/png','image/webp','image/gif','video/mp4','audio/mpeg'];
+    const extAllowed = /\.(jpg|jpeg|png|webp|gif|mp4|mp3)$/i.test(file.name);
+    if (!extAllowed) {
+        showError('Unsupported file type. Allowed: JPG, PNG, WEBP, GIF, MP4, MP3');
+        return;
+    }
+    if (file.size > 50 * 1024 * 1024) {
+        showError('File too large. Maximum size is 50 MB.');
+        return;
+    }
+    selectedFile = file;
+    hideError();
+
+    const zone = document.getElementById('ao-upload-zone');
+    zone.classList.remove('scanning');
+    document.getElementById('ao-upload-text').textContent = file.name.length > 30 ? file.name.slice(0,28)+'…' : file.name;
+    document.getElementById('ao-upload-sub').textContent  = formatSize(file.size);
+
+    const info = document.getElementById('ao-file-info');
+    document.getElementById('ao-file-name').textContent = file.name;
+    document.getElementById('ao-file-size').textContent = formatSize(file.size);
+    info.classList.add('visible');
+
+    // Icon feedback
+    const icon = document.getElementById('ao-upload-icon');
+    icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" fill="#1f7a3f" viewBox="0 0 16 16"><path d="M10.97 4.97a.75.75 0 0 1 1.071 1.05l-3.992 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.235.235 0 0 1 .02-.022z"/><path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z"/></svg>';
+
+    // ── Media preview ──
+    _revokePreview();
+    const previewCard = document.getElementById('ao-preview-card');
+    const previewBody = document.getElementById('ao-preview-body');
+    _previewObjUrl = URL.createObjectURL(file);
+
+    if (file.type.startsWith('image/') || /\.(jpg|jpeg|png|webp|gif)$/i.test(file.name)) {
+        previewBody.innerHTML =
+            `<img src="${_previewObjUrl}" alt="Evidence preview">`;
+    } else if (file.type.startsWith('video/') || /\.mp4$/i.test(file.name)) {
+        previewBody.innerHTML =
+            `<video src="${_previewObjUrl}" controls preload="metadata"></video>`;
+    } else if (file.type.startsWith('audio/') || /\.mp3$/i.test(file.name)) {
+        previewBody.innerHTML =
+            `<audio src="${_previewObjUrl}" controls></audio>`;
+    } else {
+        previewBody.innerHTML = '';
+    }
+    previewCard.classList.add('visible');
+
+    // Enable analyze
+    const btn = document.getElementById('btn-analyze');
+    btn.disabled = false;
+    document.getElementById('btn-analyze-text').textContent = 'Analyze Media';
+}
+
+function _revokePreview() {
+    if (_previewObjUrl) {
+        URL.revokeObjectURL(_previewObjUrl);
+        _previewObjUrl = null;
+    }
+}
+
+function clearFile() {
+    selectedFile = null;
+    _revokePreview();
+    document.getElementById('ao-file-input').value = '';
+    document.getElementById('ao-file-info').classList.remove('visible');
+    document.getElementById('ao-upload-zone').classList.remove('scanning');
+    document.getElementById('ao-preview-card').classList.remove('visible');
+    document.getElementById('ao-preview-body').innerHTML = '';
+    document.getElementById('ao-upload-text').textContent = 'Drag file here';
+    document.getElementById('ao-upload-sub').textContent  = 'or click to browse';
+    document.getElementById('ao-upload-icon').innerHTML = defaultUploadIcon();
+    document.getElementById('btn-analyze').disabled = true;
+    document.getElementById('btn-analyze-text').textContent = 'Select a file to begin';
+    hideError();
+    resetResults();
+}
+
+function defaultUploadIcon() {
+    return '<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" fill="currentColor" viewBox="0 0 16 16"><path d="M4.406 1.342A5.53 5.53 0 0 1 8 0c2.69 0 4.923 2 5.166 4.579C14.758 4.804 16 6.137 16 7.773 16 9.569 14.502 11 12.687 11H10a.5.5 0 0 1 0-1h2.688C13.979 10 15 8.988 15 7.773c0-1.216-1.02-2.228-2.313-2.228h-.5v-.5C12.188 2.825 10.328 1 8 1a4.53 4.53 0 0 0-2.941 1.1c-.757.652-1.153 1.438-1.153 2.055v.448l-.445.049C2.064 4.805 1 5.952 1 7.318 1 8.785 2.23 10 3.781 10H6a.5.5 0 0 1 0 1H3.781C1.708 11 0 9.366 0 7.318c0-1.763 1.266-3.223 2.942-3.524C3.059 2.699 3.623 1.945 4.406 1.342z"/><path d="M6.646 8.646a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L7.5 10.207V14.5a.5.5 0 0 1-1 0v-4.293l-1.146 1.147a.5.5 0 1 1-.708-.708l2-2z"/></svg>';
+}
+
+// ── Analysis ──
+function startAnalysis() {
+    if (!selectedFile || isAnalyzing) return;
+    isAnalyzing = true;
+    hideError();
+
+    const zone = document.getElementById('ao-upload-zone');
+    zone.classList.add('scanning');
+
+    const btn = document.getElementById('btn-analyze');
+    btn.disabled = true;
+    document.getElementById('btn-analyze-text').textContent = 'Analysing… please wait';
+
+    showResultCards();
+    showShimmer();
+
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+
+    fetch('/ai-or-not/analyze', {
+        method: 'POST',
+        body: formData,
+    })
+    .then(r => r.json())
+    .then(data => {
+        zone.classList.remove('scanning');
+        isAnalyzing = false;
+        btn.disabled = false;
+        document.getElementById('btn-analyze-text').textContent = 'Re-analyse';
+
+        if (data.error) {
+            showError(data.error);
+            resetResults();
+        } else {
+            renderResults(data);
+        }
+    })
+    .catch(err => {
+        zone.classList.remove('scanning');
+        isAnalyzing = false;
+        btn.disabled = false;
+        document.getElementById('btn-analyze-text').textContent = 'Retry Analysis';
+        showError('Network error. Please check your connection and try again.');
+        resetResults();
+    });
+}
+
+// ── Show all result cards (called before analysis starts) ──
+function showResultCards() {
+    ['breakdown-card','summary-card','deepfake-card','meta-card',
+     'nsfw-quality-row','proc-card','reverse-card','assess-card'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = '';
+    });
+}
+
+// ── Shimmer state ──
+function showShimmer() {
+    // Gauges: reset to placeholder look
+    document.getElementById('gauge-ai-result').style.display  = 'none';
+    document.getElementById('gauge-ai-placeholder').style.display = 'flex';
+    document.getElementById('gauge-df-result').style.display  = 'none';
+    document.getElementById('gauge-df-placeholder').style.display = 'flex';
+
+    // Cards: shimmer bars
+    ['breakdown-body','summary-body','deepfake-body','meta-body',
+     'nsfw-body','quality-body','proc-body','reverse-body','assess-body'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML =
+            '<div class="ao-shimmer" style="height:12px;margin-bottom:9px;width:55%;"></div>' +
+            '<div class="ao-shimmer" style="height:9px;margin-bottom:7px;width:100%;"></div>' +
+            '<div class="ao-shimmer" style="height:9px;margin-bottom:7px;width:80%;"></div>';
+    });
+}
+
+function resetResults() {
+    // Reset gauges
+    document.getElementById('gauge-ai-result').style.display      = 'none';
+    document.getElementById('gauge-ai-placeholder').style.display  = 'flex';
+    document.getElementById('gauge-df-card').style.display         = '';
+    document.getElementById('gauge-df-result').style.display       = 'none';
+    document.getElementById('gauge-df-placeholder').style.display   = 'flex';
+
+    // Hide all result cards — they only appear after Analyze is clicked
+    ['breakdown-card','summary-card','deepfake-card','meta-card',
+     'nsfw-quality-row','proc-card','reverse-card','assess-card'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+
+    const placeholders = {
+        'breakdown-body': '<div style="text-align:center;padding:1.5rem 0;color:#8a9bb5;font-size:0.88rem;"><div style="font-size:1.4rem;margin-bottom:0.4rem;">📊</div>Upload a file and run analysis to see generator attribution.</div>',
+        'summary-body':   '<div style="text-align:center;padding:1.5rem 0;color:#8a9bb5;font-size:0.88rem;"><div style="font-size:1.4rem;margin-bottom:0.4rem;">🔍</div>Detection results will appear here after analysis.</div>',
+        'deepfake-body':  '<div style="text-align:center;padding:1.2rem 0;color:#8a9bb5;font-size:0.88rem;"><div style="font-size:1.3rem;margin-bottom:0.3rem;">🎭</div>Deepfake analysis will appear after processing.</div>',
+        'meta-body':      '<div style="text-align:center;padding:1.2rem 0;color:#8a9bb5;font-size:0.88rem;"><div style="font-size:1.3rem;margin-bottom:0.3rem;">📁</div>File metadata will appear after analysis.</div>',
+        'nsfw-body':      '<div style="color:#8a9bb5;font-size:0.82rem;">Awaiting analysis</div>',
+        'quality-body':   '<div style="color:#8a9bb5;font-size:0.82rem;">Awaiting analysis</div>',
+        'proc-body':      '<div style="text-align:center;padding:1rem;color:#8a9bb5;font-size:0.82rem;">Awaiting analysis</div>',
+        'reverse-body':   '<div style="text-align:center;padding:1.2rem 0;color:#8a9bb5;font-size:0.88rem;"><div style="font-size:1.3rem;margin-bottom:0.3rem;">🔎</div>Reverse search results will appear after analysis.</div>',
+        'assess-body':    '<div style="text-align:center;padding:1.5rem 0;color:#8a9bb5;font-size:0.88rem;"><div style="font-size:1.4rem;margin-bottom:0.4rem;">📋</div>Officer-grade assessment will be generated after analysis.</div>',
+    };
+    Object.entries(placeholders).forEach(([id, html]) => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = html;
+    });
+    const ind = document.getElementById('rs-found-indicator');
+    if (ind) ind.innerHTML = '';
+    const previewCard = document.getElementById('ao-preview-card');
+    if (previewCard) {
+        const n = previewCard.querySelector('.roi-notice');
+        if (n) n.remove();
+    }
+}
+
+// ── Render results ──
+function renderResults(data) {
+    const aiConf     = data.ai_confidence || 0;
+    const dfConf     = data.deepfake_confidence;   // null = not returned by API
+    const generators = data.generators || {};
+    const verdict    = (data.verdict || 'unknown').toLowerCase();
+
+    // AI Gauge — always shown
+    document.getElementById('gauge-ai-placeholder').style.display = 'none';
+    document.getElementById('gauge-ai-result').style.display      = 'flex';
+    animateGauge('ring-ai', 'pct-ai', aiConf, gaugeColorAI(aiConf));
+
+    // Deepfake Gauge — only show when API returned it
+    if (dfConf !== null && dfConf !== undefined) {
+        document.getElementById('gauge-df-placeholder').style.display = 'none';
+        document.getElementById('gauge-df-result').style.display      = 'flex';
+        animateGauge('ring-df', 'pct-df', dfConf, dfConf >= 30 ? '#dc2626' : '#6a8ab8');
+    } else {
+        document.getElementById('gauge-df-card').style.display = 'none';
+    }
+
+    // Generator breakdown — always shown (may be empty)
+    renderBreakdown(generators);
+
+    // Detection summary — always shown
+    renderSummary(data);
+
+    // Deepfake card — always shown after analysis
+    document.getElementById('deepfake-card').style.display = '';
+    renderDeepfake(data.deepfake);
+
+    // Media Intelligence — hide if not returned
+    if (data.meta) {
+        document.getElementById('meta-card').style.display = '';
+        renderMeta(data.meta);
+    } else {
+        document.getElementById('meta-card').style.display = 'none';
+    }
+
+    // NSFW + Quality — hide row if both absent
+    const hasNsfw    = data.nsfw    !== null && data.nsfw    !== undefined;
+    const hasQuality = data.quality !== null && data.quality !== undefined;
+    if (hasNsfw || hasQuality) {
+        document.getElementById('nsfw-quality-row').style.display = '';
+        renderNsfwQuality(data.nsfw, data.quality);
+    } else {
+        document.getElementById('nsfw-quality-row').style.display = 'none';
+    }
+
+    // Processing Status — hide if no meta
+    if (data.meta) {
+        document.getElementById('proc-card').style.display = '';
+        renderProcessingStatus(data.meta);
+    } else {
+        document.getElementById('proc-card').style.display = 'none';
+    }
+
+    // Reverse Search — hide if not returned
+    if (data.reverse_search) {
+        document.getElementById('reverse-card').style.display = '';
+        renderReverseSearch(data.reverse_search);
+    } else {
+        document.getElementById('reverse-card').style.display = 'none';
+    }
+
+    // Executive summary — always shown
+    renderAssessment(verdict, aiConf, dfConf, data);
+
+    // ROI overlay on preview
+    if (data.deepfake && data.deepfake.rois && data.deepfake.rois.length > 0) {
+        setTimeout(() => applyRoiOverlay(data.deepfake.rois), 150);
+    }
+}
+
+function gaugeColorAI(pct) {
+    if (pct >= 70) return '#c53030';
+    if (pct >= 40) return '#d97706';
+    return '#059669';
+}
+
+function animateGauge(ringId, textId, targetPct, color) {
+    const circ = 314.16;
+    const ring = document.getElementById(ringId);
+    const text = document.getElementById(textId);
+    ring.setAttribute('stroke', color);
+    let start = null;
+    const duration = 1200;
+    function step(ts) {
+        if (!start) start = ts;
+        const prog = Math.min((ts - start) / duration, 1);
+        const eased = 1 - Math.pow(1 - prog, 3);
+        const cur = targetPct * eased;
+        ring.style.strokeDashoffset = circ * (1 - cur / 100);
+        text.textContent = Math.round(cur) + '%';
+        if (prog < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+}
+
+// ── Generator name display labels ──
+const GEN_LABELS = {
+    // Image generators
+    'midjourney': 'Midjourney',
+    'dall_e': 'DALL·E',
+    'dalle': 'DALL·E',
+    'stable_diffusion': 'Stable Diffusion',
+    'flux': 'Flux',
+    'adobe_firefly': 'Adobe Firefly',
+    'firefly': 'Adobe Firefly',
+    'four_o': 'GPT-4o',
+    'gpt_4o': 'GPT-4o',
+    'this_person_does_not_exist': 'This Person Does Not Exist',
+    'tpdne': 'This Person Does Not Exist',
+    'deepfake': 'Deepfake',
+    'bing': 'Bing Image Creator',
+    'imagen': 'Google Imagen',
+    'nano_banana': 'Nano Banana',
+    // Video components
+    'ai_voice': 'AI Voice (Synthetic)',
+    'ai_music': 'AI Music (Synthetic)',
+};
+function fmtGen(key) {
+    return GEN_LABELS[key.toLowerCase()] ||
+           key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function renderBreakdown(generators) {
+    const body = document.getElementById('breakdown-body');
+    const entries = Object.entries(generators).sort((a,b) => b[1]-a[1]);
+    if (!entries.length) {
+        body.innerHTML = '<div style="text-align:center;padding:1rem;color:#8a9bb5;font-size:0.85rem;">No generator attribution data returned.</div>';
+        return;
+    }
+    let html = '';
+    entries.forEach(([name, pct], idx) => {
+        const label = fmtGen(name);
+        html += `
+        <div class="ao-gen-row">
+            <div class="ao-gen-top">
+                <span class="ao-gen-name">${escHtml(label)}</span>
+                <span class="ao-gen-pct">${pct.toFixed(1)}%</span>
+            </div>
+            <div class="ao-gen-track">
+                <div class="ao-gen-bar" data-target="${pct}" style="width:0%;transition-delay:${idx*0.07}s;"></div>
+            </div>
+        </div>`;
+    });
+    body.innerHTML = html;
+    requestAnimationFrame(() => {
+        body.querySelectorAll('.ao-gen-bar').forEach(bar => {
+            bar.style.width = bar.dataset.target + '%';
+        });
+    });
+}
+
+function renderSummary(data) {
+    const verdict   = data.verdict || 'Unknown';
+    const vLower    = verdict.toLowerCase();
+    const aiConf    = data.ai_confidence    || 0;
+    const humanConf = data.human_confidence || 0;
+    const mediaType = data.media_type || 'Unknown';
+    const createdAt = data.created_at || '';
+    const filename  = data.filename   || '';
+
+    const vClass = vLower === 'ai'    ? 'verdict-ai' :
+                   vLower === 'human' ? 'verdict-human' : 'verdict-unknown';
+    const vLabel = vLower === 'ai'    ? 'AI-GENERATED' :
+                   vLower === 'human' ? 'LIKELY HUMAN'  :
+                   vLower === 'unknown' ? 'UNKNOWN'      : verdict.toUpperCase();
+
+    let ts = '—';
+    if (createdAt) { try { ts = new Date(createdAt).toLocaleString(); } catch(e) { ts = createdAt; } }
+
+    // Deepfake row: only rendered if deepfake data was returned
+    const dfConf = data.deepfake_confidence;
+    const dfRow = (dfConf !== null && dfConf !== undefined)
+        ? `<div class="ao-summary-row">
+               <span class="ao-summary-key">Deepfake Risk</span>
+               <span class="ao-summary-val">${dfConf.toFixed(1)}%</span>
+           </div>`
+        : '';
+
+    const aiLabel  = mediaType === 'video' ? 'AI Video Confidence' : 'AI Confidence';
+    const humLabel = mediaType === 'video' ? 'Human Video Confidence' : 'Human Confidence';
+
+    document.getElementById('summary-body').innerHTML = `
+        <div class="ao-summary-row">
+            <span class="ao-summary-key">Verdict</span>
+            <span class="ao-summary-val"><span class="verdict-pill ${vClass}">${vLabel}</span></span>
+        </div>
+        <div class="ao-summary-row">
+            <span class="ao-summary-key">${aiLabel}</span>
+            <span class="ao-summary-val">${aiConf.toFixed(1)}%</span>
+        </div>
+        <div class="ao-summary-row">
+            <span class="ao-summary-key">${humLabel}</span>
+            <span class="ao-summary-val">${humanConf.toFixed(1)}%</span>
+        </div>
+        ${dfRow}
+        <div class="ao-summary-row">
+            <span class="ao-summary-key">Media Type</span>
+            <span class="ao-summary-val" style="text-transform:capitalize;">${escHtml(mediaType)}</span>
+        </div>
+        <div class="ao-summary-row">
+            <span class="ao-summary-key">File</span>
+            <span class="ao-summary-val" style="color:#4a5568;max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(filename)}</span>
+        </div>
+        <div class="ao-summary-row">
+            <span class="ao-summary-key">Analysis Timestamp</span>
+            <span class="ao-summary-val" style="color:#4a5568;">${escHtml(ts)}</span>
+        </div>
+    `;
+}
+
+// ── Deepfake Analysis card ──
+function renderDeepfake(df) {
+    const body = document.getElementById('deepfake-body');
+    if (!df) {
+        body.innerHTML = '<div style="text-align:center;padding:1rem;color:#8a9bb5;font-size:0.84rem;">Deepfake data not returned for this file type.</div>';
+        return;
+    }
+    const detected = df.is_detected;
+    const conf     = (df.confidence || 0).toFixed(1);
+    const roiCount = df.roi_count || 0;
+    const badgeClass = detected ? 'badge-detected' : 'badge-safe';
+    const badgeLabel = detected ? 'DETECTED' : 'NOT DETECTED';
+    const roiNote = roiCount > 0
+        ? `<div class="ao-summary-row">
+               <span class="ao-summary-key">Facial Regions</span>
+               <span class="ao-summary-val">${roiCount} region${roiCount > 1 ? 's' : ''} flagged</span>
+           </div>
+           <div style="font-size:0.77rem;color:#991b1b;background:#fef2f2;border:1px solid #fca5a5;border-radius:6px;padding:0.4rem 0.7rem;margin-top:0.5rem;">
+               ⚠ Suspected manipulation regions are highlighted in the preview above.
+           </div>` : '';
+    body.innerHTML = `
+        <div class="ao-summary-row">
+            <span class="ao-summary-key">Deepfake Status</span>
+            <span class="ao-summary-val"><span class="ao-detect-badge ${badgeClass}">${badgeLabel}</span></span>
+        </div>
+        <div class="ao-summary-row">
+            <span class="ao-summary-key">Confidence</span>
+            <span class="ao-summary-val">${conf}%</span>
+        </div>
+        ${roiNote}
+    `;
+}
+
+// ── Media Intelligence card ──
+function renderMeta(meta) {
+    const body = document.getElementById('meta-body');
+    if (!meta) {
+        body.innerHTML = '<div style="text-align:center;padding:1rem;color:#8a9bb5;font-size:0.84rem;">File metadata not available.</div>';
+        return;
+    }
+    const size = meta.size_formatted || (meta.size_bytes ? `${meta.size_bytes} B` : '—');
+    const md5  = meta.md5 ? meta.md5.slice(0,8) + '…' + meta.md5.slice(-8) : '—';
+
+    // For video: show duration instead of resolution
+    let topLeftLabel, topLeftVal;
+    if (meta.duration !== undefined && meta.duration !== null) {
+        topLeftLabel = 'Duration';
+        const secs = parseInt(meta.duration, 10);
+        topLeftVal  = isNaN(secs) ? `${meta.duration}s` : `${Math.floor(secs/60)}m ${secs%60}s`;
+    } else {
+        topLeftLabel = 'Resolution';
+        topLeftVal   = (meta.width && meta.height) ? `${meta.width} × ${meta.height}` : '—';
+    }
+
+    const fmt = meta.format || '—';
+
+    body.innerHTML = `
+        <div class="meta-grid">
+            <div class="meta-item">
+                <div class="meta-item-label">${escHtml(topLeftLabel)}</div>
+                <div class="meta-item-val">${escHtml(String(topLeftVal))}</div>
+            </div>
+            <div class="meta-item">
+                <div class="meta-item-label">Format</div>
+                <div class="meta-item-val">${escHtml(fmt)}</div>
+            </div>
+            <div class="meta-item">
+                <div class="meta-item-label">File Size</div>
+                <div class="meta-item-val">${escHtml(size)}</div>
+            </div>
+            <div class="meta-item" title="${escHtml(meta.md5 || '')}" style="cursor:help;">
+                <div class="meta-item-label">MD5 Hash</div>
+                <div class="meta-item-val" style="font-family:monospace;font-size:0.76rem;">${escHtml(md5)}</div>
+            </div>
+        </div>
+    `;
+}
+
+// ── NSFW + Quality ──
+function renderNsfwQuality(nsfw, quality) {
+    const nb = document.getElementById('nsfw-body');
+    const qb = document.getElementById('quality-body');
+    if (!nsfw) {
+        nb.innerHTML = '<div style="color:#8a9bb5;font-size:0.82rem;">Not available</div>';
+    } else {
+        const detected = nsfw.is_detected;
+        const ver = nsfw.version ? `<div style="font-size:0.72rem;color:#6a7f9e;margin-top:0.45rem;">Model v${escHtml(nsfw.version)}</div>` : '';
+        nb.innerHTML = `<div class="ao-detect-badge ${detected ? 'badge-detected' : 'badge-safe'}">${detected ? 'DETECTED' : 'CLEAN'}</div>${ver}`;
+    }
+    if (!quality) {
+        qb.innerHTML = '<div style="color:#8a9bb5;font-size:0.82rem;">Not available</div>';
+    } else {
+        const ok = quality.is_suitable;
+        qb.innerHTML = `<div class="ao-detect-badge ${ok ? 'badge-suitable' : 'badge-unsuitable'}">${ok ? 'SUITABLE' : 'LOW QUALITY'}</div>`;
+    }
+}
+
+// ── Processing Status ──
+function renderProcessingStatus(meta) {
+    const body   = document.getElementById('proc-body');
+    const status = (meta && meta.processing_status) ? meta.processing_status : null;
+    if (!status || !Object.keys(status).length) {
+        body.innerHTML = '<div style="text-align:center;padding:0.75rem;color:#8a9bb5;font-size:0.82rem;">Status not available.</div>';
+        return;
+    }
+    const lblMap = { ai_generated:'AI Detection', deepfake:'Deepfake', nsfw:'Sensitive Content', quality:'Quality', reverse_search:'Reverse Search' };
+    let html = '';
+    Object.entries(status).forEach(([k, v]) => {
+        const lbl = lblMap[k] || k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+        const cls = v === 'processed' ? 'processed' : v === 'rejected' ? 'rejected' : v === 'errored' ? 'errored' : 'pending';
+        html += `<div class="proc-row"><span class="proc-dot ${cls}"></span><span class="proc-label">${escHtml(lbl)}</span><span class="proc-val ${cls}">${escHtml(v || 'pending')}</span></div>`;
+    });
+    body.innerHTML = html;
+}
+
+// ── Reverse Search ──
+function renderReverseSearch(rs) {
+    const body = document.getElementById('reverse-body');
+    const ind  = document.getElementById('rs-found-indicator');
+    if (!rs) {
+        body.innerHTML = '<div style="text-align:center;padding:1rem;color:#8a9bb5;font-size:0.84rem;">Reverse search data not available for this file type.</div>';
+        return;
+    }
+    const found = rs.was_found;
+    ind.innerHTML = `<span class="rs-found-badge ${found ? 'rs-found-yes' : 'rs-found-no'}">${found ? 'MATCH FOUND' : 'NO MATCH'}</span>`;
+
+    if (!found || !rs.matches || !rs.matches.length) {
+        body.innerHTML = `<div style="text-align:center;padding:1rem;">
+            <span class="ao-detect-badge badge-safe">No Prior Internet Appearance</span>
+            <div style="font-size:0.82rem;color:#4a5568;margin-top:0.6rem;">This media has not been indexed in reverse search databases.</div>
+        </div>`;
+        return;
+    }
+
+    let html = `<div style="font-size:0.8rem;font-weight:700;color:#991b1b;margin-bottom:0.7rem;">⚠ ${rs.match_count} prior appearance${rs.match_count > 1 ? 's' : ''} found — investigate provenance.</div>`;
+    rs.matches.forEach(m => {
+        html += `<div class="rs-match">
+            <div class="rs-domain">${escHtml(m.domain || 'Unknown source')}</div>
+            <div class="rs-row"><span class="rs-key">First Crawled</span><span class="rs-val">${escHtml(m.earliest_crawl_date || '—')}</span></div>
+            ${m.earliest_backlink ? `<div class="rs-row"><span class="rs-key">Source URL</span><a href="${escHtml(m.earliest_backlink)}" target="_blank" rel="noopener noreferrer" class="rs-link">View Source ↗</a></div>` : ''}
+            ${m.image_url         ? `<div class="rs-row"><span class="rs-key">Image URL</span><a href="${escHtml(m.image_url)}" target="_blank" rel="noopener noreferrer" class="rs-link">View Image ↗</a></div>` : ''}
+        </div>`;
+    });
+    body.innerHTML = html;
+}
+
+// ── ROI Bounding Box Canvas Overlay ──
+function applyRoiOverlay(rois) {
+    const previewBody = document.getElementById('ao-preview-body');
+    if (!previewBody) return;
+    const img = previewBody.querySelector('img');
+    if (!img) return;
+
+    const draw = () => {
+        const nW = img.naturalWidth, nH = img.naturalHeight;
+        if (!nW || !nH) return;
+
+        const canvas = document.createElement('canvas');
+        canvas.width  = nW;
+        canvas.height = nH;
+        canvas.style.maxWidth    = '100%';
+        canvas.style.maxHeight   = '220px';
+        canvas.style.borderRadius = '6px';
+        canvas.style.boxShadow   = '0 2px 8px rgba(6,41,82,.12)';
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+
+        const lw = Math.max(2, nW / 400);
+        const fs = Math.max(11, nW / 90);
+        const cs = Math.max(10, nW / 60);
+
+        rois.forEach((roi, idx) => {
+            const b  = roi.bbox || {};
+            const x1 = b.x1||0, y1 = b.y1||0, x2 = b.x2||0, y2 = b.y2||0;
+            const rw = x2 - x1, rh = y2 - y1;
+            const conf = typeof roi.confidence === 'number' ? roi.confidence.toFixed(1) : '—';
+
+            // Dashed red box
+            ctx.strokeStyle = '#dc2626'; ctx.lineWidth = lw;
+            ctx.setLineDash([lw*4, lw*2]);
+            ctx.strokeRect(x1, y1, rw, rh);
+
+            // Gold corner marks
+            ctx.strokeStyle = '#f3c14b'; ctx.lineWidth = lw*1.5;
+            ctx.setLineDash([]);
+            [[x1,y1,1,1],[x2,y1,-1,1],[x1,y2,1,-1],[x2,y2,-1,-1]].forEach(([cx,cy,dx,dy]) => {
+                ctx.beginPath();
+                ctx.moveTo(cx+dx*cs, cy); ctx.lineTo(cx, cy); ctx.lineTo(cx, cy+dy*cs);
+                ctx.stroke();
+            });
+
+            // Label
+            const lblH = fs * 1.8;
+            const lblY = y1 >= lblH ? y1 - lblH : y2;
+            ctx.fillStyle = 'rgba(220,38,38,0.9)';
+            ctx.fillRect(x1, lblY, Math.min(rw, nW - x1), lblH);
+            ctx.fillStyle = '#fff';
+            ctx.font = `bold ${fs}px Arial, sans-serif`;
+            ctx.fillText(`Region ${idx+1}  •  ${conf}% conf`, x1 + lw*2, lblY + fs*1.3);
+        });
+
+        img.parentNode.replaceChild(canvas, img);
+
+        // Warning strip below preview
+        const previewCard = document.getElementById('ao-preview-card');
+        if (previewCard && !previewCard.querySelector('.roi-notice')) {
+            const n = document.createElement('div');
+            n.className = 'roi-notice';
+            n.textContent = `⚠ ${rois.length} suspected manipulation region${rois.length>1?'s':''} highlighted`;
+            previewCard.appendChild(n);
+        }
+    };
+
+    if (img.complete && img.naturalWidth > 0) { draw(); }
+    else { img.onload = draw; }
+}
+
+// ── Forensic Executive Summary ──
+function renderAssessment(verdict, aiConf, dfConf, data) {
+    let summary = '';
+    let recs = [];
+
+    const dfDetected   = data.deepfake && data.deepfake.is_detected;
+    const rsFound      = data.reverse_search && data.reverse_search.was_found;
+    const topGenerator = Object.entries(data.generators || {}).sort((a,b)=>b[1]-a[1])[0];
+    const topGenName   = topGenerator ? fmtGen(topGenerator[0]) : null;
+    const dfConfNum    = (dfConf !== null && dfConf !== undefined) ? dfConf : 0;
+
+    if (verdict === 'ai' || aiConf >= 70) {
+        summary = `High-confidence AI-generated media (${aiConf.toFixed(1)}% confidence).`;
+        if (topGenName) summary += ` Likely synthesised via ${topGenName}.`;
+        if (dfDetected) summary += ` Deepfake manipulation indicators detected in facial regions.`;
+        if (rsFound)    summary += ` Reverse search indicates prior internet appearance — provenance requires investigation.`;
+        recs = [
+            'Conduct reverse image search to identify original source material',
+            'Validate file metadata and MD5 hash for integrity',
+            'Verify timestamp and provenance chain of the media file',
+            'Cross-reference with known AI generator watermarks and artefacts',
+            'Do not present as authentic evidence without expert digital forensics review',
+        ];
+    } else if (aiConf >= 40) {
+        summary = `Moderate AI generation indicators detected (${aiConf.toFixed(1)}% confidence). Results are inconclusive.`;
+        recs = [
+            'Submit for additional forensic analysis by a digital evidence specialist',
+            'Cross-reference with original source media if available',
+            'Examine EXIF and metadata for signs of modification or tampering',
+            'Obtain chain-of-custody documentation for the file',
+        ];
+    } else {
+        summary = `Low AI generation probability (${aiConf.toFixed(1)}% confidence). Media appears authentic based on available analysis.`;
+        recs = [
+            'Document this AI verification result in the case file',
+            'Note any visual anomalies observed during manual review',
+            'Preserve original file hash for evidence integrity records',
+        ];
+    }
+    if (dfDetected && dfConfNum >= 30) recs.unshift('Investigate potential face-swap or identity manipulation in flagged regions');
+    if (rsFound) recs.push('Correlate reverse search matches with case timeline and source attribution');
+
+    const recHtml = recs.map((r, i) =>
+        `<li><span class="ao-rec-bullet">${i+1}</span><span>${escHtml(r)}</span></li>`
+    ).join('');
+
+    document.getElementById('assess-body').innerHTML = `
+        <p class="ao-assess-text">${escHtml(summary)}</p>
+        <div style="font-size:0.78rem;font-weight:700;color:#062952;text-transform:uppercase;letter-spacing:.05em;margin-bottom:0.5rem;">Recommended Actions</div>
+        <ul class="ao-rec-list">${recHtml}</ul>
+    `;
+}
+
+// ── Utilities ──
+function formatSize(bytes) {
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function escHtml(str) {
+    return String(str)
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;');
+}
+
+function showError(msg) {
+    const bar = document.getElementById('ao-error-bar');
+    document.getElementById('ao-error-msg').textContent = msg;
+    bar.style.display = 'flex';
+}
+
+function hideError() {
+    document.getElementById('ao-error-bar').style.display = 'none';
+}
+</script>
+{% endblock %}

@@ -1,0 +1,600 @@
+{% extends "base.html" %}
+
+{% block title %}OSINT Portal - Username Intelligence{% endblock %}
+
+{% block extra_css %}
+        .tool-nav-pills .nav-link {
+            color: var(--navy);
+            border: 1px solid #d8e2f1;
+            border-radius: 8px;
+            margin-right: 0.5rem;
+            padding: 0.5rem 1rem;
+            font-weight: 500;
+        }
+
+        .tool-nav-pills .nav-link.active {
+            background: var(--navy);
+            color: #fff;
+        }
+
+        .tool-nav-pills .nav-link:hover {
+            background: #e8f0fa;
+        }
+
+        .tool-nav-pills .nav-link.active:hover {
+            background: var(--navy);
+        }
+{% endblock %}
+
+{% block content %}
+    <main class="container my-4 my-md-5">
+        <div class="portal-card">
+            <div class="section-head">Username Intelligence — OSINT Tools</div>
+            <div class="p-3 p-md-4">
+                <div class="tool-nav-pills mb-4">
+                    <a href="/tools/email" class="nav-link {% if tool_type == 'email' %}active{% endif %}">Email Tools</a>
+                    <a href="/tools/phone" class="nav-link {% if tool_type == 'phone' %}active{% endif %}">Phone Tools</a>
+                    <a href="/tools/username" class="nav-link {% if tool_type == 'username' %}active{% endif %}">Username Tools</a>
+                </div>
+
+                <p class="text-muted mb-3">Run username-based OSINT checks for profile discovery across multiple platforms.</p>
+                <form method="POST" class="mb-3">
+                    <div class="row g-2">
+                        <div class="col-md-8">
+                            <input type="text" name="username" class="form-control input-control" placeholder="Enter username" value="{{ username or '' }}">
+                        </div>
+                        <div class="col-md-4 d-grid">
+                            <button type="submit" class="btn btn-intel input-control">Run Scan</button>
+                        </div>
+                    </div>
+                    <div class="tool-picker mt-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="fw-semibold">Select Username OSINT Tools</div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="select-all-tools" onclick="toggleAllTools(this)">
+                                <label class="form-check-label fw-semibold" for="select-all-tools">Select All</label>
+                            </div>
+                        </div>
+                        <div class="row g-2">
+                            {% for tool in username_tools %}
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input tool-checkbox" type="checkbox" name="tools" value="{{ tool.id }}" id="tool-{{ tool.id }}"
+                                               {% if selected_tools and tool.id in selected_tools %}checked{% endif %}>
+                                        <label class="form-check-label" for="tool-{{ tool.id }}">{{ tool.label }}</label>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </form>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <div class="service-tile"><strong>INT-01:</strong> Username footprint check</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="service-tile"><strong>INT-02:</strong> Sherlock deep scan (~300 sites)</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="service-tile"><strong>INT-03:</strong> Maigret deep scan (~500 sites)</div>
+                    </div>
+                </div>
+
+                {% if error %}
+                    <div class="alert alert-danger">{{ error }}</div>
+                {% endif %}
+
+                <!-- Live Streaming: Username Footprint (11-platform HTTP check) -->
+                {% if selected_tools and 'username' in selected_tools and username %}
+                <div class="card mb-4" id="userfp-section" style="border-radius: 12px; border: 1px solid #e2e8f0;">
+                    <div class="card-header text-white" style="background: linear-gradient(135deg, #062952 0%, #0c3f7b 100%);">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h3 class="h5 mb-0">🔗 Username Footprint — {{ username }}</h3>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-primary" id="userfp-status">Scanning…</span>
+                                <span class="badge bg-success" id="userfp-count">0 found</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="userfp-scanning" class="p-3"><small class="text-muted"><span class="spinner-border spinner-border-sm me-1" role="status"></span>Checking 11 platforms…</small></div>
+                        <div class="table-responsive" id="userfp-table-wrap" style="display:none">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light"><tr><th>Platform</th><th>Profile URL</th></tr></thead>
+                                <tbody id="userfp-tbody"></tbody>
+                            </table>
+                        </div>
+                        <div id="userfp-empty" class="alert alert-info m-3 mb-0" style="display:none">No confirmed public profiles detected for this username.</div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Live Streaming: User-Scanner -->
+                {% if selected_tools and 'user_scanner' in selected_tools and username %}
+                <div class="card mb-4" id="uscan-streaming-section" style="border-radius: 12px; border: 1px solid #e2e8f0;">
+                    <div class="card-header text-white" style="background: linear-gradient(135deg, #062952 0%, #0c3f7b 100%);">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h3 class="h5 mb-0">📡 User-Scanner Live Results — {{ username }}</h3>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-primary" id="uscan-status">Scanning...</span>
+                                <span class="badge bg-success" id="uscan-found">0 found</span>
+                                <span class="badge bg-secondary" id="uscan-checked">0 checked</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="progress mb-3" style="height: 8px;">
+                            <div id="uscan-progress" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                        </div>
+                        <div id="uscan-results" style="max-height: 600px; overflow-y: auto;"></div>
+                        <div id="uscan-summary" class="alert alert-success mt-3 mb-0" style="display: none;">
+                            <strong>✓ Scan Complete!</strong> Found <span id="uscan-final-found">0</span> platforms in <span id="uscan-final-time">0</span>s
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Live Streaming: Sherlock -->
+                {% if selected_tools and 'sherlock' in selected_tools and username and 'userdeep' not in selected_tools %}
+                <div class="card mb-4" id="sherlock-streaming-section" style="border-radius: 12px; border: 1px solid #e2e8f0;">
+                    <div class="card-header text-white" style="background: linear-gradient(135deg, #0d4f93 0%, #1a6ab3 100%);">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h3 class="h5 mb-0">🔍 Sherlock Deep Scan — {{ username }}</h3>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-primary" id="sherlock-status">Scanning...</span>
+                                <span class="badge bg-success" id="sherlock-count">0 found</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="progress mb-3" style="height: 8px;">
+                            <div id="sherlock-progress" class="progress-bar progress-bar-striped progress-bar-animated bg-info" role="progressbar" style="width: 0%"></div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light"><tr><th>Site</th><th>Username</th><th>Link</th></tr></thead>
+                                <tbody id="sherlock-tbody"></tbody>
+                            </table>
+                        </div>
+                        <div id="sherlock-summary" class="alert alert-success mt-3" style="display: none;">
+                            <strong>✓ Complete!</strong> Found <span id="sherlock-final-count">0</span> profiles
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Live Streaming: Maigret -->
+                {% if selected_tools and 'maigret' in selected_tools and username and 'userdeep' not in selected_tools %}
+                <div class="card mb-4" id="maigret-streaming-section" style="border-radius: 12px; border: 1px solid #e2e8f0;">
+                    <div class="card-header text-white" style="background: linear-gradient(135deg, #1a6ab3 0%, #2d85d9 100%);">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h3 class="h5 mb-0">🔍 Maigret Deep Scan — {{ username }}</h3>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-primary" id="maigret-status">Scanning...</span>
+                                <span class="badge bg-success" id="maigret-count">0 found</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="progress mb-3" style="height: 8px;">
+                            <div id="maigret-progress" class="progress-bar progress-bar-striped progress-bar-animated bg-info" role="progressbar" style="width: 0%"></div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light"><tr><th>Site</th><th>Username</th><th>Link</th></tr></thead>
+                                <tbody id="maigret-tbody"></tbody>
+                            </table>
+                        </div>
+                        <div id="maigret-summary" class="alert alert-success mt-3" style="display: none;">
+                            <strong>✓ Complete!</strong> Found <span id="maigret-final-count">0</span> profiles
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Live Streaming: Combined (userdeep) -->
+                {% if selected_tools and 'userdeep' in selected_tools and username %}
+                <div class="card mb-4" id="sherlock-streaming-section" style="border-radius: 12px; border: 1px solid #e2e8f0;">
+                    <div class="card-header text-white" style="background: linear-gradient(135deg, #0d4f93 0%, #1a6ab3 100%);">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h3 class="h5 mb-0">🔍 Sherlock Deep Scan — {{ username }}</h3>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-primary" id="sherlock-status">Scanning...</span>
+                                <span class="badge bg-success" id="sherlock-count">0 found</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="progress mb-3" style="height: 8px;">
+                            <div id="sherlock-progress" class="progress-bar progress-bar-striped progress-bar-animated bg-info" role="progressbar" style="width: 0%"></div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light"><tr><th>Site</th><th>Username</th><th>Link</th></tr></thead>
+                                <tbody id="sherlock-tbody"></tbody>
+                            </table>
+                        </div>
+                        <div id="sherlock-summary" class="alert alert-success mt-3" style="display: none;">
+                            <strong>✓ Complete!</strong> Found <span id="sherlock-final-count">0</span> profiles
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-4" id="maigret-streaming-section" style="border-radius: 12px; border: 1px solid #e2e8f0;">
+                    <div class="card-header text-white" style="background: linear-gradient(135deg, #1a6ab3 0%, #2d85d9 100%);">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h3 class="h5 mb-0">🔍 Maigret Deep Scan — {{ username }}</h3>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-primary" id="maigret-status">Scanning...</span>
+                                <span class="badge bg-success" id="maigret-count">0 found</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="progress mb-3" style="height: 8px;">
+                            <div id="maigret-progress" class="progress-bar progress-bar-striped progress-bar-animated bg-info" role="progressbar" style="width: 0%"></div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light"><tr><th>Site</th><th>Username</th><th>Link</th></tr></thead>
+                                <tbody id="maigret-tbody"></tbody>
+                            </table>
+                        </div>
+                        <div id="maigret-summary" class="alert alert-success mt-3" style="display: none;">
+                            <strong>✓ Complete!</strong> Found <span id="maigret-final-count">0</span> profiles
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-4" id="userdeep-section" style="border-radius: 12px; border: 1px solid #e2e8f0;">
+                    <div class="card-header text-white" style="background: linear-gradient(135deg, #062952 0%, #0c3f7b 100%);">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h3 class="h5 mb-0">🔍 Combined Deep Scan — {{ username }}</h3>
+                            <span class="badge bg-success" id="userdeep-count">Loading...</span>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light"><tr><th style="width:35%;">Site</th><th style="width:25%;">Username</th><th style="width:40%;">Link</th></tr></thead>
+                                <tbody id="userdeep-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+            </div>
+        </div>
+    </main>
+{% endblock %}
+
+{% block extra_js %}
+    <script>
+        function toggleAllTools(source) {
+            const checkboxes = document.querySelectorAll('.tool-checkbox');
+            for (let checkbox of checkboxes) { checkbox.checked = source.checked; }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const selectedTools = {{ selected_tools | tojson }} || [];
+            const hasUsername = {{ username | tojson if username else 'null' }};
+            if (!hasUsername) return;
+
+            const hasUserdeep = selectedTools.includes('userdeep');
+
+            // Username footprint — SSE (streams each platform hit live)
+            if (selectedTools.includes('username')) {
+                startUserFootprintScan(hasUsername);
+            }
+
+            if (selectedTools.includes('user_scanner')) {
+                startUserScannerStream(hasUsername);
+            }
+
+            if (selectedTools.includes('sherlock') && !hasUserdeep) {
+                startSherlockStreaming(hasUsername);
+            }
+
+            if (selectedTools.includes('maigret') && !hasUserdeep) {
+                startMaigretStreaming(hasUsername);
+            }
+
+            if (hasUserdeep) {
+                startCombinedStreaming(hasUsername, selectedTools.includes('sherlock'), selectedTools.includes('maigret'));
+            }
+        });
+
+        // ── Username Footprint SSE ───────────────────────────────────────────────
+        function startUserFootprintScan(username) {
+            const statusBadge = document.getElementById('userfp-status');
+            const countBadge = document.getElementById('userfp-count');
+            let foundCount = 0;
+            const es = new EventSource(`/api/stream/username-footprint?username=${encodeURIComponent(username)}`);
+            es.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                if (data.type === 'result') {
+                    foundCount++;
+                    countBadge.textContent = `${foundCount} found`;
+                    const wrap = document.getElementById('userfp-table-wrap');
+                    if (wrap.style.display === 'none') {
+                        document.getElementById('userfp-scanning').style.display = 'none';
+                        wrap.style.display = '';
+                    }
+                    const tbody = document.getElementById('userfp-tbody');
+                    const row = document.createElement('tr');
+                    row.style.opacity = '0';
+                    row.innerHTML = `<td class="fw-semibold">${data.name}</td><td><a href="${data.url}" target="_blank">${data.url}</a></td>`;
+                    tbody.appendChild(row);
+                    setTimeout(() => row.style.opacity = '1', 50);
+                } else if (data.type === 'complete') {
+                    statusBadge.textContent = 'Complete'; statusBadge.className = 'badge bg-success';
+                    if (foundCount === 0) {
+                        document.getElementById('userfp-scanning').style.display = 'none';
+                        document.getElementById('userfp-empty').style.display = '';
+                    }
+                    es.close();
+                } else if (data.type === 'error') {
+                    statusBadge.textContent = 'Error'; statusBadge.className = 'badge bg-danger';
+                    document.getElementById('userfp-scanning').style.display = 'none';
+                    es.close();
+                }
+            };
+            es.onerror = function() { statusBadge.textContent = 'Error'; statusBadge.className = 'badge bg-danger'; es.close(); };
+        }
+
+        // ── User-Scanner ────────────────────────────────────────────────────────
+        function startUserScannerStream(query) {
+            const statusBadge = document.getElementById('uscan-status');
+            const foundBadge = document.getElementById('uscan-found');
+            const checkedBadge = document.getElementById('uscan-checked');
+            const progressBar = document.getElementById('uscan-progress');
+            const resultsDiv = document.getElementById('uscan-results');
+            const summaryDiv = document.getElementById('uscan-summary');
+            const categories = {};
+
+            const eventSource = new EventSource(`/api/stream/scan?type=username&query=${encodeURIComponent(query)}`);
+
+            eventSource.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                if (data.type === 'result') {
+                    const result = data.data;
+                    const category = result.category || 'Other';
+                    if (!categories[category]) {
+                        const catDiv = document.createElement('div');
+                        catDiv.className = 'card mb-2';
+                        catDiv.style = 'border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;';
+                        catDiv.innerHTML = `
+                            <div class="card-header text-white py-2" style="background:linear-gradient(135deg,#0c3f7b 0%,#1a5aa0 100%);">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="fw-bold small">${getCategoryIcon(category)} ${category}</span>
+                                    <span class="badge bg-light text-dark cat-count" style="font-size:0.7rem;">0</span>
+                                </div>
+                            </div>
+                            <div class="card-body p-0"><div class="table-responsive"><table class="table table-hover mb-0 cat-table" style="font-size:0.85rem;"><tbody></tbody></table></div></div>
+                        `;
+                        resultsDiv.appendChild(catDiv);
+                        categories[category] = { element: catDiv, table: catDiv.querySelector('.cat-table tbody'), count: 0, foundCount: 0 };
+                    }
+                    const cat = categories[category];
+                    cat.count++;
+                    if (result.found) cat.foundCount++;
+                    const row = document.createElement('tr');
+                    row.className = result.found ? 'table-success' : 'table-light';
+                    row.style.opacity = '0';
+                    row.innerHTML = `
+                        <td class="fw-semibold" style="width:30%;">${result.platform}</td>
+                        <td style="width:25%;">${result.found ? '<span class="badge bg-success" style="font-size:0.7rem;">✓ FOUND</span>' : '<span class="badge bg-secondary" style="font-size:0.7rem;">✗ Not Found</span>'}</td>
+                        <td style="width:45%;" class="text-end">
+                            ${result.found ? `<a href="${result.url}" target="_blank" class="btn btn-sm btn-primary" style="font-size:0.7rem;padding:0.15rem 0.4rem;">View</a>` : ''}
+                            <button class="btn btn-sm btn-outline-secondary" style="font-size:0.7rem;padding:0.15rem 0.4rem;" onclick="navigator.clipboard.writeText('${result.url}')">Copy</button>
+                        </td>
+                    `;
+                    if (result.found || cat.count <= 2) { cat.table.appendChild(row); setTimeout(() => row.style.opacity = '1', 50); }
+                    cat.element.querySelector('.cat-count').textContent = `${cat.foundCount}/${cat.count}`;
+                    foundBadge.textContent = `${data.found_count} found`;
+                    checkedBadge.textContent = `${data.checked_count} checked`;
+                    progressBar.style.width = `${Math.min((data.checked_count / 195) * 100, 98)}%`;
+                } else if (data.type === 'progress') {
+                    checkedBadge.textContent = `${data.checked_count} checked`;
+                    if (data.found_count !== undefined) foundBadge.textContent = `${data.found_count} found`;
+                } else if (data.type === 'complete') {
+                    statusBadge.textContent = 'Complete'; statusBadge.className = 'badge bg-success';
+                    progressBar.style.width = '100%'; progressBar.classList.remove('progress-bar-animated');
+                    summaryDiv.style.display = 'block';
+                    document.getElementById('uscan-final-found').textContent = data.found_count;
+                    document.getElementById('uscan-final-time').textContent = data.duration.toFixed(1);
+                    eventSource.close();
+                } else if (data.type === 'error') {
+                    statusBadge.textContent = 'Error'; statusBadge.className = 'badge bg-danger';
+                    eventSource.close();
+                }
+            };
+            eventSource.onerror = function() { statusBadge.textContent = 'Connection Error'; statusBadge.className = 'badge bg-warning'; eventSource.close(); };
+        }
+
+        // ── Sherlock ────────────────────────────────────────────────────────────
+        function startSherlockStreaming(username) {
+            const statusBadge = document.getElementById('sherlock-status');
+            const countBadge = document.getElementById('sherlock-count');
+            const progressBar = document.getElementById('sherlock-progress');
+            const tbody = document.getElementById('sherlock-tbody');
+            const summary = document.getElementById('sherlock-summary');
+            let foundCount = 0, checkedCount = 0, scanDone = false;
+
+            const eventSource = new EventSource(`/api/stream/sherlock?username=${encodeURIComponent(username)}`);
+            eventSource.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                if (data.type === 'result') {
+                    foundCount++;
+                    countBadge.textContent = `${foundCount} found`;
+                    const url = new URL(data.url);
+                    const siteName = url.hostname.replace(/^www\./, '').split('.')[0];
+                    const row = document.createElement('tr');
+                    row.style.opacity = '0';
+                    row.innerHTML = `<td class="fw-semibold">${siteName.charAt(0).toUpperCase() + siteName.slice(1)}</td><td>${username}</td><td><a href="${data.url}" target="_blank" class="btn btn-sm btn-primary">${data.url}</a></td>`;
+                    tbody.appendChild(row); setTimeout(() => row.style.opacity = '1', 50);
+                    checkedCount++;
+                    progressBar.style.width = `${Math.min((checkedCount / 300) * 100, 98)}%`;
+                } else if (data.type === 'progress') {
+                    checkedCount = data.checked || checkedCount + 1;
+                    progressBar.style.width = `${Math.min((checkedCount / 300) * 100, 98)}%`;
+                } else if (data.type === 'complete') {
+                    scanDone = true;
+                    statusBadge.textContent = 'Complete'; statusBadge.className = 'badge bg-success';
+                    progressBar.style.width = '100%'; progressBar.classList.remove('progress-bar-animated');
+                    summary.style.display = 'block';
+                    document.getElementById('sherlock-final-count').textContent = foundCount;
+                    eventSource.close();
+                } else if (data.type === 'error') {
+                    scanDone = true;
+                    statusBadge.textContent = 'Error'; statusBadge.className = 'badge bg-danger';
+                    const alert = document.createElement('div');
+                    alert.className = 'alert alert-danger mt-3';
+                    alert.textContent = data.message || 'Sherlock scan failed.';
+                    document.getElementById('sherlock-streaming-section').querySelector('.card-body').appendChild(alert);
+                    eventSource.close();
+                }
+            };
+            eventSource.onerror = function() {
+                if (!scanDone) { statusBadge.textContent = 'Connection Error'; statusBadge.className = 'badge bg-warning'; }
+                eventSource.close();
+            };
+        }
+
+        // ── Maigret ─────────────────────────────────────────────────────────────
+        function startMaigretStreaming(username) {
+            const statusBadge = document.getElementById('maigret-status');
+            const countBadge = document.getElementById('maigret-count');
+            const progressBar = document.getElementById('maigret-progress');
+            const tbody = document.getElementById('maigret-tbody');
+            const summary = document.getElementById('maigret-summary');
+            let foundCount = 0, checkedCount = 0;
+
+            const eventSource = new EventSource(`/api/stream/maigret?username=${encodeURIComponent(username)}`);
+            eventSource.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                if (data.type === 'result') {
+                    foundCount++;
+                    countBadge.textContent = `${foundCount} found`;
+                    const url = new URL(data.url);
+                    const siteName = url.hostname.replace(/^www\./, '').split('.')[0];
+                    const row = document.createElement('tr');
+                    row.style.opacity = '0';
+                    row.innerHTML = `<td class="fw-semibold">${siteName.charAt(0).toUpperCase() + siteName.slice(1)}</td><td>${username}</td><td><a href="${data.url}" target="_blank" class="btn btn-sm btn-primary">${data.url}</a></td>`;
+                    tbody.appendChild(row); setTimeout(() => row.style.opacity = '1', 50);
+                    checkedCount++;
+                    progressBar.style.width = `${Math.min((checkedCount / 500) * 100, 98)}%`;
+                } else if (data.type === 'progress') {
+                    checkedCount = data.checked || checkedCount + 1;
+                    progressBar.style.width = `${Math.min((checkedCount / 500) * 100, 98)}%`;
+                } else if (data.type === 'complete') {
+                    statusBadge.textContent = 'Complete'; statusBadge.className = 'badge bg-success';
+                    progressBar.style.width = '100%'; progressBar.classList.remove('progress-bar-animated');
+                    summary.style.display = 'block';
+                    document.getElementById('maigret-final-count').textContent = foundCount;
+                    eventSource.close();
+                } else if (data.type === 'error') {
+                    statusBadge.textContent = 'Error'; statusBadge.className = 'badge bg-danger';
+                    eventSource.close();
+                }
+            };
+            eventSource.onerror = function() { statusBadge.textContent = 'Connection Error'; statusBadge.className = 'badge bg-warning'; eventSource.close(); };
+        }
+
+        // ── Combined (userdeep) ─────────────────────────────────────────────────
+        function startCombinedStreaming(username, feedSherlock, feedMaigret) {
+            const countBadge = document.getElementById('userdeep-count');
+            const tbody = document.getElementById('userdeep-tbody');
+            const shSt = feedSherlock ? document.getElementById('sherlock-status') : null;
+            const shCo = feedSherlock ? document.getElementById('sherlock-count') : null;
+            const shPr = feedSherlock ? document.getElementById('sherlock-progress') : null;
+            const shTb = feedSherlock ? document.getElementById('sherlock-tbody') : null;
+            const shSu = feedSherlock ? document.getElementById('sherlock-summary') : null;
+            const shFn = feedSherlock ? document.getElementById('sherlock-final-count') : null;
+            const mgSt = feedMaigret ? document.getElementById('maigret-status') : null;
+            const mgCo = feedMaigret ? document.getElementById('maigret-count') : null;
+            const mgPr = feedMaigret ? document.getElementById('maigret-progress') : null;
+            const mgTb = feedMaigret ? document.getElementById('maigret-tbody') : null;
+            const mgSu = feedMaigret ? document.getElementById('maigret-summary') : null;
+            const mgFn = feedMaigret ? document.getElementById('maigret-final-count') : null;
+
+            let sherlockDone = false, maigretDone = false;
+            let allProfiles = new Set();
+            let shFoundCount = 0, shCheckedCount = 0, mgFoundCount = 0, mgCheckedCount = 0;
+
+            const sherlockES = new EventSource(`/api/stream/sherlock?username=${encodeURIComponent(username)}`);
+            const maigretES = new EventSource(`/api/stream/maigret?username=${encodeURIComponent(username)}`);
+
+            function addToDeepTable(url, source) {
+                if (allProfiles.has(url)) return;
+                allProfiles.add(url);
+                const urlObj = new URL(url);
+                const siteName = urlObj.hostname.replace(/^www\./, '').split('.')[0];
+                const row = document.createElement('tr');
+                row.style.opacity = '0';
+                row.innerHTML = `<td class="fw-semibold">${siteName.charAt(0).toUpperCase() + siteName.slice(1)}</td><td>${username}</td><td><a href="${url}" target="_blank" class="btn btn-sm btn-primary">${url}</a><span class="badge bg-${source === 'sherlock' ? 'info' : 'warning'} ms-1">${source}</span></td>`;
+                tbody.appendChild(row); setTimeout(() => row.style.opacity = '1', 50);
+                countBadge.textContent = `${allProfiles.size} profiles`;
+            }
+
+            sherlockES.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                if (data.type === 'result') {
+                    addToDeepTable(data.url, 'sherlock');
+                    if (shTb) {
+                        shFoundCount++; shCo.textContent = `${shFoundCount} found`;
+                        const urlObj = new URL(data.url); const siteName = urlObj.hostname.replace(/^www\./, '').split('.')[0];
+                        const row = document.createElement('tr'); row.style.opacity = '0';
+                        row.innerHTML = `<td class="fw-semibold">${siteName.charAt(0).toUpperCase() + siteName.slice(1)}</td><td>${username}</td><td><a href="${data.url}" target="_blank" class="btn btn-sm btn-primary">${data.url}</a></td>`;
+                        shTb.appendChild(row); setTimeout(() => row.style.opacity = '1', 50);
+                        shCheckedCount++; shPr.style.width = `${Math.min((shCheckedCount / 300) * 100, 98)}%`;
+                    }
+                } else if (data.type === 'progress') {
+                    if (shPr) { shCheckedCount = data.checked || shCheckedCount + 1; shPr.style.width = `${Math.min((shCheckedCount / 300) * 100, 98)}%`; }
+                } else if (data.type === 'complete') {
+                    sherlockDone = true;
+                    if (shSt) { shSt.textContent = 'Complete'; shSt.className = 'badge bg-success'; shPr.style.width = '100%'; shPr.classList.remove('progress-bar-animated'); shSu.style.display = 'block'; shFn.textContent = shFoundCount; }
+                    if (maigretDone) countBadge.className = 'badge bg-success';
+                    sherlockES.close();
+                } else if (data.type === 'error') {
+                    if (shSt) { shSt.textContent = 'Error'; shSt.className = 'badge bg-danger'; }
+                    sherlockES.close();
+                }
+            };
+            sherlockES.onerror = function() { if (shSt) { shSt.textContent = 'Connection Error'; shSt.className = 'badge bg-warning'; } sherlockES.close(); };
+
+            maigretES.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                if (data.type === 'result') {
+                    addToDeepTable(data.url, 'maigret');
+                    if (mgTb) {
+                        mgFoundCount++; mgCo.textContent = `${mgFoundCount} found`;
+                        const urlObj = new URL(data.url); const siteName = urlObj.hostname.replace(/^www\./, '').split('.')[0];
+                        const row = document.createElement('tr'); row.style.opacity = '0';
+                        row.innerHTML = `<td class="fw-semibold">${siteName.charAt(0).toUpperCase() + siteName.slice(1)}</td><td>${username}</td><td><a href="${data.url}" target="_blank" class="btn btn-sm btn-primary">${data.url}</a></td>`;
+                        mgTb.appendChild(row); setTimeout(() => row.style.opacity = '1', 50);
+                        mgCheckedCount++; mgPr.style.width = `${Math.min((mgCheckedCount / 500) * 100, 98)}%`;
+                    }
+                } else if (data.type === 'progress') {
+                    if (mgPr) { mgCheckedCount = data.checked || mgCheckedCount + 1; mgPr.style.width = `${Math.min((mgCheckedCount / 500) * 100, 98)}%`; }
+                } else if (data.type === 'complete') {
+                    maigretDone = true;
+                    if (mgSt) { mgSt.textContent = 'Complete'; mgSt.className = 'badge bg-success'; mgPr.style.width = '100%'; mgPr.classList.remove('progress-bar-animated'); mgSu.style.display = 'block'; mgFn.textContent = mgFoundCount; }
+                    if (sherlockDone) countBadge.className = 'badge bg-success';
+                    maigretES.close();
+                } else if (data.type === 'error') {
+                    if (mgSt) { mgSt.textContent = 'Error'; mgSt.className = 'badge bg-danger'; }
+                    maigretES.close();
+                }
+            };
+            maigretES.onerror = function() { if (mgSt) { mgSt.textContent = 'Connection Error'; mgSt.className = 'badge bg-warning'; } maigretES.close(); };
+        }
+
+        function getCategoryIcon(category) {
+            const icons = { 'Social Media': '📱', 'Developer': '💻', 'Gaming': '🎮', 'E-Commerce': '🛒', 'Messaging': '💬', 'Professional': '💼', 'Forum': '🗣️', 'Video': '🎥', 'Music': '🎵', 'Learning': '📚', 'Dating/Adult': '🔞' };
+            return icons[category] || '📋';
+        }
+    </script>
+{% endblock %}

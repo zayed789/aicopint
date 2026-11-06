@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}OSINT Portal{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --navy:        #062952;
+            --navy-dark:   #041d39;
+            --khaki:       #cab58a;
+            --khaki-soft:  #e2d3b2;
+            --accent:      #f3c14b;
+            --surface:     #f0f4f9;
+            --sb-width:    270px;
+            --sb-collapsed: 68px;
+            --transition:  0.24s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+
+        body {
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--surface);
+            color: #1a1f2b;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* ─── SIDEBAR ─────────────────────────────────────────── */
+        .sidebar {
+            position: fixed;
+            top: 0; left: 0; bottom: 0;
+            width: var(--sb-width);
+            background: var(--navy-dark);
+            border-right: 1px solid rgba(255,255,255,0.07);
+            display: flex;
+            flex-direction: column;
+            z-index: 1050;
+            transition: width var(--transition);
+            overflow: hidden;
+            box-shadow: 4px 0 24px rgba(0,0,0,0.18);
+        }
+        .sidebar.sb-collapsed { width: var(--sb-collapsed); }
+
+        /* Brand header */
+        .sb-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem 1.1rem;
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+            min-height: 70px;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+        .sb-emblem {
+            width: 56px; height: 56px; flex-shrink: 0;
+            border-radius: 50%;
+            overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .sb-emblem img {
+            width: 100%; height: 100%; object-fit: contain;
+        }
+        .sb-title-wrap {
+            overflow: hidden;
+            white-space: nowrap;
+            transition: opacity var(--transition), max-width var(--transition);
+            max-width: 180px;
+        }
+        .sidebar.sb-collapsed .sb-title-wrap { opacity: 0; max-width: 0; }
+        .sb-title-main {
+            font-size: 0.78rem; font-weight: 800;
+            letter-spacing: 0.07em; text-transform: uppercase;
+            color: #fff; line-height: 1.25;
+        }
+        .sb-title-sub {
+            font-size: 0.68rem; color: rgba(255,255,255,0.45);
+        }
+
+        /* Nav scroll area */
+        .sb-nav {
+            flex: 1;
+            overflow-y: auto; overflow-x: hidden;
+            padding: 0.6rem 0;
+        }
+        .sb-nav::-webkit-scrollbar { width: 3px; }
+        .sb-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+        /* Section labels */
+        .sb-section {
+            padding: 0.9rem 1.1rem 0.25rem;
+            font-size: 0.6rem; font-weight: 700;
+            letter-spacing: 0.12em; text-transform: uppercase;
+            color: rgba(255,255,255,0.28);
+            white-space: nowrap;
+            transition: opacity var(--transition);
+        }
+        .sidebar.sb-collapsed .sb-section { opacity: 0; }
+
+        /* Nav items */
+        .sb-item {
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            padding: 0.62rem 1.1rem;
+            color: rgba(255,255,255,0.62);
+            text-decoration: none;
+            font-size: 0.855rem;
+            font-weight: 500;
+            border-left: 3px solid transparent;
+            transition: background var(--transition), color var(--transition), border-color var(--transition);
+            white-space: nowrap;
+            position: relative;
+        }
+        .sb-item:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+        }
+        .sb-item.sb-active {
+            background: rgba(255,255,255,0.09);
+            color: #fff;
+            border-left-color: var(--khaki);
+        }
+        .sb-icon {
+            font-size: 1.1rem;
+            width: 22px; min-width: 22px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .sb-label {
+            overflow: hidden;
+            white-space: nowrap;
+            transition: opacity var(--transition), max-width var(--transition);
+            max-width: 160px;
+        }
+        .sidebar.sb-collapsed .sb-label { opacity: 0; max-width: 0; }
+
+        /* Tooltip when collapsed */
+        .sidebar.sb-collapsed .sb-item:hover::after {
+            content: attr(data-tip);
+            position: fixed;
+            left: calc(var(--sb-collapsed) + 10px);
+            background: #041d39;
+            color: #fff;
+            padding: 0.3rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            pointer-events: none;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+            border: 1px solid rgba(255,255,255,0.1);
+            z-index: 2000;
+        }
+
+        /* User profile footer */
+        .sb-user-wrap {
+            border-top: 1px solid rgba(255,255,255,0.07);
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+        }
+        .sb-user-card {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            padding: 0.7rem 1rem;
+            text-decoration: none;
+            color: rgba(255,255,255,0.75);
+            transition: background var(--transition), color var(--transition);
+            min-width: 0;
+            overflow: hidden;
+        }
+        .sb-user-card:hover { background: rgba(255,255,255,0.07); color: #fff; }
+        .sb-avatar {
+            width: 32px; height: 32px; min-width: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--khaki), var(--accent));
+            color: var(--navy-dark);
+            font-weight: 900; font-size: 0.9rem;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .sb-user-info {
+            overflow: hidden;
+            transition: opacity var(--transition), max-width var(--transition);
+            max-width: 130px;
+            white-space: nowrap;
+        }
+        .sidebar.sb-collapsed .sb-user-info { opacity: 0; max-width: 0; }
+        .sb-user-name { font-size: 0.8rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+        .sb-user-role { font-size: 0.7rem; color: var(--khaki); text-transform: capitalize; }
+        .sb-logout-btn {
+            display: flex; align-items: center; justify-content: center; gap: .4rem;
+            padding: 0.7rem 0.85rem;
+            color: rgba(255,255,255,0.4);
+            text-decoration: none;
+            font-size: 1rem;
+            border-left: 1px solid rgba(255,255,255,0.07);
+            transition: background var(--transition), color var(--transition);
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+        .sb-logout-btn:hover { background: rgba(220,53,69,0.15); color: #ff6b6b; }
+        .sb-logout-label {
+            font-size: 0.8rem; font-weight: 600;
+            transition: opacity var(--transition), max-width var(--transition);
+            max-width: 50px; overflow: hidden;
+        }
+        .sidebar.sb-collapsed .sb-logout-label { opacity: 0; max-width: 0; }
+        .sidebar.sb-collapsed .sb-logout-btn { display: none; }
+        .sidebar.sb-collapsed .sb-brand { justify-content: center; padding: 0.75rem 0; }
+        .sidebar.sb-collapsed .sb-user-card { justify-content: center; padding: 0.7rem 0; }
+
+        /* Toggle button */
+        .sb-toggle-wrap {
+            border-top: 1px solid rgba(255,255,255,0.07);
+            flex-shrink: 0;
+        }
+        .sb-toggle {
+            width: 100%;
+            display: flex; align-items: center; justify-content: center;
+            gap: 0.6rem;
+            padding: 0.8rem 1.1rem;
+            background: none; border: none; cursor: pointer;
+            color: rgba(255,255,255,0.4);
+            font-size: 0.82rem;
+            white-space: nowrap;
+            transition: background var(--transition), color var(--transition);
+            text-align: left;
+        }
+        .sb-toggle:hover { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.8); }
+        .sb-toggle-label {
+            transition: opacity var(--transition), max-width var(--transition);
+            max-width: 120px; overflow: hidden;
+        }
+        .sidebar.sb-collapsed .sb-toggle-label { opacity: 0; max-width: 0; }
+        .sb-toggle-icon { font-size: 1rem; transition: transform var(--transition); }
+        .sidebar.sb-collapsed .sb-toggle-icon { transform: rotate(180deg); }
+
+        /* ─── MAIN WRAPPER ─────────────────────────────────────── */
+        .main-wrapper {
+            margin-left: var(--sb-width);
+            flex: 1;
+            min-width: 0;
+            transition: margin-left var(--transition);
+            display: flex;
+            flex-direction: column;
+        }
+        body.sb-collapsed-body .main-wrapper { margin-left: var(--sb-collapsed); }
+
+        /* ─── SHARED COMPONENT STYLES ──────────────────────────── */
+        .portal-card {
+            background: #fff;
+            border: 1px solid #dce6f5;
+            border-radius: 14px;
+            box-shadow: 0 4px 20px rgba(6,41,82,0.07);
+        }
+        .section-head {
+            background: linear-gradient(90deg, var(--navy), #0c3f7b);
+            color: #fff;
+            border-radius: 12px 12px 0 0;
+            padding: 0.8rem 1.1rem;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+        }
+        .input-control {
+            border: 1px solid #9eb3d2;
+            border-radius: 0.6rem;
+            min-height: 44px;
+        }
+        .input-control:focus {
+            border-color: #2f67b1;
+            box-shadow: 0 0 0 0.2rem rgba(47,103,177,0.18);
+        }
+        .btn-intel {
+            background: var(--navy);
+            color: #fff; border: 0;
+            font-weight: 600;
+            border-radius: 0.6rem;
+        }
+        .btn-intel:hover { background: #0f4687; color: #fff; }
+        .intel-box {
+            background: #fff; border: 1px solid #c9d7ef;
+            border-radius: 10px; padding: 1rem; height: 100%;
+        }
+        .tag-hit {
+            display: inline-block;
+            background: #e6f5ea; color: #1f7a3f;
+            border: 1px solid #b7e5c6; border-radius: 999px;
+            padding: 0.2rem 0.6rem; font-size: 0.78rem; margin-bottom: 0.7rem;
+        }
+        .service-tile {
+            border-left: 4px solid var(--khaki);
+            background: #fff; border-radius: 10px;
+            padding: 0.8rem 1rem;
+            box-shadow: 0 4px 12px rgba(6,41,82,0.05);
+        }
+        .badge-integrated { background:#e6f5ea;color:#1a7a3a;border:1px solid #b7e5c6;border-radius:999px;padding:.13rem .55rem;font-size:.71rem;font-weight:700; }
+        .badge-streaming  { background:#dbeafe;color:#1e40af;border:1px solid #bfdbfe;border-radius:999px;padding:.13rem .55rem;font-size:.71rem;font-weight:700; }
+        .badge-pivot      { background:#fef3c7;color:#92400e;border:1px solid #fde68a;border-radius:999px;padding:.13rem .55rem;font-size:.71rem;font-weight:700; }
+
+        footer {
+            color: #dbe7ff; background: var(--navy-dark); font-size: 0.88rem;
+        }
+
+        {% block extra_css %}{% endblock %}
+    </style>
+</head>
+<body id="app-body">
+
+    <!-- ── LEFT SIDEBAR ────────────────────────────────────── -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sb-brand">
+            <div class="sb-emblem">
+                <img src="/brand-logo" alt="HCP" onerror="this.parentElement.style.background='linear-gradient(135deg,#cab58a,#f3c14b)';this.outerHTML='<span style=\'font-size:.65rem;font-weight:900;color:#041d39;text-align:center;line-height:1.1;\'>HCP<br>OSINT</span>'">
+            </div>
+            <div class="sb-title-wrap">
+                <div class="sb-title-main">Hyderabad Police</div>
+                <div class="sb-title-sub">Intelligence Portal</div>
+            </div>
+        </div>
+
+        <nav class="sb-nav" role="navigation">
+            {% if session.get('police_role') == 'admin' %}
+            <div class="sb-section">Administration</div>
+            <a href="/admin/officers" class="sb-item {% if request.path.startswith('/admin') %}sb-active{% endif %}" data-tip="Admin Panel">
+                <span class="sb-icon"><i class="bi bi-shield-lock-fill"></i></span>
+                <span class="sb-label">Admin Panel</span>
+            </a>
+            {% endif %}
+
+            <div class="sb-section">Intelligence</div>
+
+            <a href="/" class="sb-item {% if request.path == '/' %}sb-active{% endif %}" data-tip="Dashboard">
+                <span class="sb-icon"><i class="bi bi-grid-fill"></i></span>
+                <span class="sb-label">Dashboard</span>
+            </a>
+            <a href="/email-intel" class="sb-item {% if request.path.startswith('/email-intel') %}sb-active{% endif %}" data-tip="Email Intel">
+                <span class="sb-icon"><i class="bi bi-envelope-fill"></i></span>
+                <span class="sb-label">Email Intel</span>
+            </a>
+            <a href="/username-intel" class="sb-item {% if request.path.startswith('/username-intel') %}sb-active{% endif %}" data-tip="Username Intel">
+                <span class="sb-icon"><i class="bi bi-person-fill"></i></span>
+                <span class="sb-label">Username Intel</span>
+            </a>
+            <a href="/phone-intel" class="sb-item {% if request.path.startswith('/phone-intel') %}sb-active{% endif %}" data-tip="Phone Intel">
+                <span class="sb-icon"><i class="bi bi-telephone-fill"></i></span>
+                <span class="sb-label">Phone Intel</span>
+            </a>
+
+            <div class="sb-section">Tools</div>
+
+            <a href="/ai-or-not" class="sb-item {% if request.path.startswith('/ai-or-not') %}sb-active{% endif %}" data-tip="AI OR NOT">
+                <span class="sb-icon"><i class="bi bi-robot"></i></span>
+                <span class="sb-label">AI OR NOT</span>
+            </a>
+<a href="/image-intel/" class="sb-item {% if request.path.startswith('/image-intel') %}sb-active{% endif %}" data-tip="Image Intel">
+                <span class="sb-icon"><i class="bi bi-image-fill"></i></span>
+                <span class="sb-label">Image Intel</span>
+            </a>
+            <a href="/infra-intel" class="sb-item {% if request.path.startswith('/infra-intel') %}sb-active{% endif %}" data-tip="Infra Intel">
+                <span class="sb-icon"><i class="bi bi-server"></i></span>
+                <span class="sb-label">Infra Intel</span>
+            </a>
+            <a href="/instagram-sniffer" class="sb-item {% if request.path.startswith('/instagram-sniffer') %}sb-active{% endif %}" data-tip="Instagram Sniffer">
+                <span class="sb-icon"><i class="bi bi-instagram"></i></span>
+                <span class="sb-label">Instagram Sniffer</span>
+            </a>
+
+            <div class="sb-section">Resources</div>
+
+            <a href="/ask-ai" class="sb-item {% if request.path.startswith('/ask-ai') %}sb-active{% endif %}" data-tip="Ask AI">
+                <span class="sb-icon"><i class="bi bi-chat-dots-fill"></i></span>
+                <span class="sb-label">Ask AI</span>
+            </a>
+            <a href="/other-links" class="sb-item {% if request.path.startswith('/other-links') %}sb-active{% endif %}" data-tip="OSINT Links">
+                <span class="sb-icon"><i class="bi bi-link-45deg"></i></span>
+                <span class="sb-label">OSINT Links</span>
+            </a>
+            <a href="/master-prompt" class="sb-item {% if request.path.startswith('/master-prompt') %}sb-active{% endif %}" data-tip="Master Prompt">
+                <span class="sb-icon"><i class="bi bi-journal-text"></i></span>
+                <span class="sb-label">Master Prompt</span>
+            </a>
+
+        </nav>
+
+        <!-- User profile footer -->
+        <div class="sb-user-wrap" id="sb-user-wrap">
+            <a href="/profile" class="sb-user-card" id="sb-user-card" data-tip="{{ session.get('police_email','') }}">
+                <div class="sb-avatar">{{ (session.get('full_name') or session.get('police_email','?'))[0:1] | upper }}</div>
+                <div class="sb-user-info">
+                    <div class="sb-user-name">{{ session.get('full_name') or session.get('police_email','Officer') }}</div>
+                    <div class="sb-user-role">{{ 'Admin' if session.get('police_role') == 'admin' else 'Officer' }}</div>
+                </div>
+            </a>
+            <a href="/logout" class="sb-logout-btn" title="Logout" data-tip="Logout">
+                <i class="bi bi-box-arrow-right"></i>
+                <span class="sb-logout-label">Logout</span>
+            </a>
+        </div>
+
+        <div class="sb-toggle-wrap">
+            <button class="sb-toggle" onclick="toggleSidebar()" aria-label="Toggle sidebar">
+                <i class="bi bi-chevron-double-left sb-toggle-icon" id="sb-toggle-icon"></i>
+                <span class="sb-toggle-label">Collapse</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- ── MAIN CONTENT ───────────────────────────────────── -->
+    <div class="main-wrapper" id="main-wrapper">
+        {% block content %}{% endblock %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        (function() {
+            const COLLAPSED_KEY = 'sb_collapsed';
+            const sidebar    = document.getElementById('sidebar');
+            const body       = document.getElementById('app-body');
+            const toggleIcon = document.getElementById('sb-toggle-icon');
+
+            function applyState(collapsed) {
+                if (collapsed) {
+                    sidebar.classList.add('sb-collapsed');
+                    body.classList.add('sb-collapsed-body');
+                    toggleIcon.className = 'bi bi-chevron-double-right sb-toggle-icon';
+                } else {
+                    sidebar.classList.remove('sb-collapsed');
+                    body.classList.remove('sb-collapsed-body');
+                    toggleIcon.className = 'bi bi-chevron-double-left sb-toggle-icon';
+                }
+            }
+
+            // Restore persisted state
+            applyState(localStorage.getItem(COLLAPSED_KEY) === '1');
+
+            window.toggleSidebar = function() {
+                const nowCollapsed = !sidebar.classList.contains('sb-collapsed');
+                applyState(nowCollapsed);
+                localStorage.setItem(COLLAPSED_KEY, nowCollapsed ? '1' : '0');
+            };
+        })();
+    </script>
+    {% block extra_js %}{% endblock %}
+
+    <!-- ── ASK AI FLOATING COPILOT ───────────────────────────── -->
+    <style>
+        .aai-fab {
+            position: fixed; bottom: 24px; right: 24px; z-index: 2100;
+            width: 52px; height: 52px;
+            background: linear-gradient(135deg, var(--navy), #1a5aa0);
+            color: #fff; border: none; border-radius: 50%;
+            font-size: 1.25rem; cursor: pointer;
+            box-shadow: 0 4px 18px rgba(6,41,82,0.35);
+            display: flex; align-items: center; justify-content: center;
+            transition: transform 0.18s, box-shadow 0.18s;
+        }
+        .aai-fab:hover { transform: scale(1.08); box-shadow: 0 8px 28px rgba(6,41,82,0.45); }
+
+        .aai-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(4,29,57,0.25); z-index: 2050;
+            backdrop-filter: blur(1px);
+        }
+        .aai-overlay.open { display: block; }
+
+        .aai-panel {
+            position: fixed; bottom: 88px; right: 24px; z-index: 2200;
+            width: 370px; max-height: 560px;
+            background: #fff; border: 1px solid #dce6f5;
+            border-radius: 16px;
+            box-shadow: 0 12px 40px rgba(6,41,82,0.2);
+            display: flex; flex-direction: column;
+            transform: translateY(20px) scale(0.97);
+            opacity: 0; pointer-events: none;
+            transition: transform 0.22s cubic-bezier(0.4,0,0.2,1), opacity 0.22s;
+        }
+        .aai-panel.open { transform: translateY(0) scale(1); opacity: 1; pointer-events: all; }
+
+        .aai-head {
+            background: linear-gradient(135deg, var(--navy), #0c3f7b);
+            color: #fff; padding: 0.9rem 1.1rem;
+            border-radius: 16px 16px 0 0;
+            display: flex; align-items: flex-start; justify-content: space-between;
+            flex-shrink: 0;
+        }
+        .aai-head-title { font-size: 0.92rem; font-weight: 700; margin: 0; }
+        .aai-head-sub   { font-size: 0.7rem; color: rgba(255,255,255,0.6); margin: 0.1rem 0 0; }
+        .aai-close {
+            background: rgba(255,255,255,0.12); border: none; color: #fff;
+            width: 26px; height: 26px; border-radius: 6px; cursor: pointer;
+            font-size: 0.9rem; display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; margin-left: 0.5rem;
+            transition: background 0.15s;
+        }
+        .aai-close:hover { background: rgba(255,255,255,0.22); }
+
+        .aai-body {
+            flex: 1; overflow-y: auto; padding: 0.9rem 1rem;
+            font-size: 0.84rem; color: #1a1f2b;
+        }
+        .aai-hint { color: #6b7a99; font-size: 0.82rem; text-align: center; margin: 1.5rem 0; }
+        .aai-result-block { background: #f0f6ff; border: 1px solid #c8d8ef; border-radius: 10px; padding: 0.75rem 0.9rem; margin-bottom: 0.6rem; }
+        .aai-result-label { font-size: 0.68rem; font-weight: 800; color: #2d4f8a; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.3rem; }
+        .aai-result-text  { font-size: 0.83rem; line-height: 1.5; color: #1a2f4a; }
+        .aai-result-list  { margin: 0; padding-left: 1.1rem; }
+        .aai-result-list li { margin-bottom: 0.2rem; font-size: 0.82rem; }
+
+        .aai-foot {
+            padding: 0.75rem 1rem; border-top: 1px solid #edf2fb;
+            background: #f8fafd; border-radius: 0 0 16px 16px; flex-shrink: 0;
+        }
+        .aai-textarea {
+            width: 100%; border: 1.5px solid #c8d8ef; border-radius: 8px;
+            padding: 0.5rem 0.75rem; font-size: 0.84rem;
+            resize: none; outline: none; background: #fff;
+            font-family: inherit; transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        .aai-textarea:focus { border-color: var(--navy); box-shadow: 0 0 0 3px rgba(6,41,82,0.1); }
+        .aai-send-btn {
+            width: 100%; margin-top: 0.5rem;
+            padding: 0.5rem; background: var(--navy); color: #fff;
+            border: none; border-radius: 8px; font-size: 0.85rem;
+            font-weight: 700; cursor: pointer; transition: background 0.15s;
+            display: flex; align-items: center; justify-content: center; gap: 0.4rem;
+        }
+        .aai-send-btn:hover { background: #0f4687; }
+        .aai-send-btn:disabled { background: #8099b8; cursor: not-allowed; }
+    </style>
+
+    <button class="aai-fab" id="aai-fab" onclick="toggleAskAIPanel()" title="Ask AI Investigator">
+        <i class="bi bi-chat-dots-fill"></i>
+    </button>
+
+    <div class="aai-overlay" id="aai-overlay" onclick="closeAskAIPanel()"></div>
+
+    <div class="aai-panel" id="aai-panel">
+        <div class="aai-head">
+            <div>
+                <p class="aai-head-title"><i class="bi bi-robot me-1"></i>AI Investigator</p>
+                <p class="aai-head-sub">Ask about findings, correlate intelligence, get leads</p>
+            </div>
+            <button class="aai-close" onclick="closeAskAIPanel()"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div class="aai-body" id="aai-body">
+            <p class="aai-hint"><i class="bi bi-shield-lock" style="font-size:1.8rem;display:block;margin-bottom:0.5rem;color:#c8d8ef;"></i>Enter your investigation query below and the AI will analyse and provide intelligence insights.</p>
+        </div>
+        <div class="aai-foot">
+            <textarea class="aai-textarea" id="aai-query" rows="3"
+                placeholder="E.g. Summarise the findings for rfcode9@gmail.com and suggest next steps…"></textarea>
+            <button class="aai-send-btn" id="aai-send-btn" onclick="sendAskAIQuery()">
+                <i class="bi bi-send-fill"></i> Send Query
+            </button>
+        </div>
+    </div>
+
+    <script>
+        function toggleAskAIPanel() {
+            const panel   = document.getElementById('aai-panel');
+            const overlay = document.getElementById('aai-overlay');
+            const isOpen  = panel.classList.contains('open');
+            if (isOpen) { closeAskAIPanel(); } else { panel.classList.add('open'); overlay.classList.add('open'); }
+        }
+        function closeAskAIPanel() {
+            document.getElementById('aai-panel').classList.remove('open');
+            document.getElementById('aai-overlay').classList.remove('open');
+        }
+        function sendAskAIQuery() {
+            const query = document.getElementById('aai-query').value.trim();
+            if (!query) return;
+            const btn  = document.getElementById('aai-send-btn');
+            const body = document.getElementById('aai-body');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Analysing…';
+            body.innerHTML = '<p class="aai-hint"><span class="spinner-border spinner-border-sm me-2"></span>Processing your query…</p>';
+            fetch('/api/ask-ai', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({query: query, context: ''})
+            })
+            .then(r => r.json())
+            .then(d => {
+                let html = '';
+                if (d.error) {
+                    html = `<div class="alert alert-danger" style="font-size:0.82rem;">${d.error}</div>`;
+                } else {
+                    if (d.summary) {
+                        html += `<div class="aai-result-block"><div class="aai-result-label">Summary</div><div class="aai-result-text">${d.summary}</div></div>`;
+                    }
+                    if (d.findings && d.findings.length) {
+                        html += `<div class="aai-result-block"><div class="aai-result-label">Findings</div><ul class="aai-result-list">` +
+                            d.findings.map(f => `<li>${f}</li>`).join('') + `</ul></div>`;
+                    }
+                    if (d.recommendations && d.recommendations.length) {
+                        html += `<div class="aai-result-block"><div class="aai-result-label">Recommendations</div><ul class="aai-result-list">` +
+                            d.recommendations.map(r => `<li>${r}</li>`).join('') + `</ul></div>`;
+                    }
+                    if (d.caveats) {
+                        html += `<div class="aai-result-block" style="background:#fff8e6;border-color:#f3c14b;"><div class="aai-result-label" style="color:#92400e;">Caveats</div><div class="aai-result-text">${d.caveats}</div></div>`;
+                    }
+                }
+                body.innerHTML = html || '<p class="aai-hint">No response received.</p>';
+            })
+            .catch(() => { body.innerHTML = '<div class="alert alert-danger" style="font-size:0.82rem;">Failed to reach AI service.</div>'; })
+            .finally(() => { btn.disabled = false; btn.innerHTML = '<i class="bi bi-send-fill"></i> Send Query'; });
+        }
+    </script>
+</body>
+</html>

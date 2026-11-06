@@ -1,0 +1,209 @@
+[
+  {
+    "title": "WhatsMyName",
+    "url": "https://whatsmyname.app/",
+    "category": "Username Intelligence",
+    "free_paid": "Free",
+    "description": "Enumerate usernames across 600+ web platforms simultaneously",
+    "added_by": "admin@tspolice.gov.in",
+    "added_at": "2026-05-10T00:00:00+00:00"
+  },
+  {
+    "title": "OSINT.ROCKS",
+    "url": "https://osint.rocks/",
+    "category": "Username Intelligence",
+    "free_paid": "Free",
+    "description": "Multi-source OSINT aggregator for username, email, and phone lookups",
+    "added_by": "admin@tspolice.gov.in",
+    "added_at": "2026-05-10T00:00:00+00:00"
+  },
+  {
+    "title": "BehindTheEmail",
+    "url": "https://behindtheemail.com/",
+    "category": "Email Intelligence",
+    "free_paid": "Free/Paid",
+    "description": "Resolve email addresses to social profiles and linked accounts",
+    "added_by": "admin@tspolice.gov.in",
+    "added_at": "2026-05-10T00:00:00+00:00"
+  },
+  {
+    "title": "DNSDumpster",
+    "url": "https://dnsdumpster.com/",
+    "category": "Infrastructure Intelligence",
+    "free_paid": "Free",
+    "description": "DNS recon and network mapping — subdomains, MX, TXT, and host records",
+    "added_by": "admin@tspolice.gov.in",
+    "added_at": "2026-05-10T00:00:00+00:00"
+  },
+  {
+    "title": "DNSlytics",
+    "url": "https://dnslytics.com/",
+    "category": "Infrastructure Intelligence",
+    "free_paid": "Free/Paid",
+    "description": "Comprehensive domain and DNS analytics with reverse lookup capabilities",
+    "added_by": "admin@tspolice.gov.in",
+    "added_at": "2026-05-10T00:00:00+00:00"
+  },
+  {
+    "title": "Shodan",
+    "url": "https://www.shodan.io/",
+    "category": "Infrastructure Intelligence",
+    "free_paid": "Free/Paid",
+    "description": "Search engine for internet-connected devices, open ports, and vulnerabilities",
+    "added_by": "admin@tspolice.gov.in",
+    "added_at": "2026-05-10T00:00:00+00:00"
+  },
+  {
+    "title": "who.is",
+    "url": "https://who.is/",
+    "category": "Infrastructure Intelligence",
+    "free_paid": "Free",
+    "description": "WHOIS lookup, IP info, ASN, and network registration details",
+    "added_by": "admin@tspolice.gov.in",
+    "added_at": "2026-05-10T00:00:00+00:00"
+  },
+  {
+    "title": "Censys",
+    "url": "https://search.censys.io/",
+    "category": "Infrastructure Intelligence",
+    "free_paid": "Free/Paid",
+    "description": "Internet-wide scanning for hosts, certificates, and open services",
+    "added_by": "admin@tspolice.gov.in",
+    "added_at": "2026-05-10T00:00:00+00:00"
+  },
+  {
+    "title": "IPInfo",
+    "url": "https://ipinfo.io/",
+    "category": "Infrastructure Intelligence",
+    "free_paid": "Free/Paid",
+    "description": "IP geolocation, ASN, organization, and carrier intelligence",
+    "added_by": "admin@tspolice.gov.in",
+    "added_at": "2026-05-10T00:00:00+00:00"
+  },
+  {
+    "title": "WHOIS DomainTools",
+    "url": "https://whois.domaintools.com/",
+    "category": "Infrastructure Intelligence",
+    "free_paid": "Free/Paid",
+    "description": "Historical WHOIS records, domain registration timeline, and registrant data",
+    "added_by": "admin@tspolice.gov.in",
+    "added_at": "2026-05-10T00:00:00+00:00"
+  },
+  {
+    "title": "AbuseIPDB",
+    "url": "https://www.abuseipdb.com/",
+    "category": "Threat Intelligence",
+    "free_paid": "Free",
+    "description": "IP reputation database — abuse reports, malicious activity scores, and blocklists",
+    "added_by": "admin@tspolice.gov.in",
+    "added_at": "2026-05-10T00:00:00+00:00"
+  },
+  {
+    "title": "FotoForensics",
+    "url": "https://fotoforensics.com/",
+    "category": "Metadata Analysis",
+    "free_paid": "Free",
+    "description": "Image forensics including Error Level Analysis (ELA) and full EXIF metadata",
+    "added_by": "admin@tspolice.gov.in",
+    "added_at": "2026-05-10T00:00:00+00:00"
+  },
+  {
+    "title": "Pic2Map",
+    "url": "https://www.pic2map.com/",
+    "category": "Metadata Analysis",
+    "free_paid": "Free",
+    "description": "Extract GPS coordinates from photo EXIF data and display the location on a map",
+    "added_by": "admin@tspolice.gov.in",
+    "added_at": "2026-05-10T00:00:00+00:00"
+  },
+  {
+    "title": "TinEye",
+    "url": "https://tineye.com/",
+    "category": "Metadata Analysis",
+    "free_paid": "Free/Paid",
+    "description": "Reverse image search — find every location an image appears across the web",
+    "added_by": "admin@tspolice.gov.in",
+    "added_at": "2026-05-10T00:00:00+00:00"
+  },
+  {
+    "title": "AI or Not",
+    "url": "https://www.aiornot.com/",
+    "category": "Metadata Analysis",
+    "free_paid": "Free",
+    "description": "Detect AI-generated images and deepfakes using machine learning classifiers",
+    "added_by": "admin@tspolice.gov.in",
+    "added_at": "2026-05-10T00:00:00+00:00"
+  },
+  {
+    "title": "any.run",
+    "url": "https://app.any.run/",
+    "category": "Malware Analysis",
+    "free_paid": "Free/Paid",
+    "description": "Interactive malware sandbox — analyze suspicious files and URLs with live behavioral tracking",
+    "added_by": "admin@tspolice.gov.in",
+    "added_at": "2026-05-10T00:00:00+00:00"
+  },
+  {
+    "title": "VirusTotal",
+    "url": "https://www.virustotal.com/gui/home/upload",
+    "category": "Malware Analysis",
+    "free_paid": "Free",
+    "description": "Scan files, URLs, and hashes against 70+ antivirus engines and threat intelligence sources",
+    "added_by": "admin@tspolice.gov.in",
+    "added_at": "2026-05-11T00:00:00+00:00"
+  },
+  {
+    "title": "SpiderFoot",
+    "url": "https://github.com/smicallef/spiderfoot",
+    "category": "DFIR",
+    "free_paid": "Free",
+    "description": "Automated OSINT reconnaissance — aggregates data from 200+ sources for comprehensive target profiling",
+    "added_by": "admin@tspolice.gov.in",
+    "added_at": "2026-05-10T00:00:00+00:00"
+  },
+  {
+    "title": "MarineTraffic",
+    "url": "https://www.marinetraffic.com/",
+    "category": "Reconnaissance",
+    "free_paid": "Free/Paid",
+    "description": "Real-time and historical AIS vessel tracking — identify ships by name, MMSI, or IMO number",
+    "added_by": "admin@tspolice.gov.in",
+    "added_at": "2026-05-10T00:00:00+00:00"
+  },
+  {
+    "title": "FaceCheck.ID",
+    "url": "https://facecheck.id/",
+    "category": "Reconnaissance",
+    "free_paid": "Paid",
+    "description": "Facial recognition search across social media and public web for suspect identification",
+    "added_by": "admin@tspolice.gov.in",
+    "added_at": "2026-05-10T00:00:00+00:00"
+  },
+  {
+    "title": "GSTIN & Business Finder",
+    "url": "https://services.gst.gov.in/services/searchtp",
+    "category": "Reconnaissance",
+    "free_paid": "Free",
+    "description": "Official Indian government GST portal — verify business registration details by GSTIN or PAN",
+    "added_by": "admin@tspolice.gov.in",
+    "added_at": "2026-05-10T00:00:00+00:00"
+  },
+  {
+    "title": "HaveIBeenPwned",
+    "url": "https://haveibeenpwned.com/",
+    "category": "Email Intelligence",
+    "free_paid": "Free",
+    "description": "Have I Been Pwned  checks whether an email, phone number, or password has appeared in known data breaches.",
+    "added_by": "admin",
+    "added_at": "2026-05-11T10:45:34.117761+00:00"
+  },
+  {
+    "title": "urlscan",
+    "url": "https://urlscan.io/",
+    "category": "Infrastructure Intelligence",
+    "free_paid": "Free/Paid",
+    "description": "urlscan.io  analyzes websites and URLs to collect intelligence such as domains, IPs, screenshots, technologies, and network activity.",
+    "added_by": "admin",
+    "added_at": "2026-05-11T10:47:47.318949+00:00"
+  }
+]

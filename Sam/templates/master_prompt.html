@@ -1,0 +1,329 @@
+{% extends "base.html" %}
+
+{% block title %}Master Prompt — AI Investigation Guide{% endblock %}
+
+{% block extra_css %}
+.mp-hero {
+    background: linear-gradient(135deg, #041d39 0%, #062952 60%, #0c3f7b 100%);
+    border-radius: 16px;
+    padding: 2.2rem 2rem 1.8rem;
+    box-shadow: 0 12px 40px rgba(6,41,82,.22);
+    margin-bottom: 1.75rem;
+}
+.mp-hero-title {
+    font-size: 1.55rem;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.01em;
+}
+.mp-hero-sub {
+    color: #a8c0e8;
+    font-size: 0.92rem;
+    margin-top: 0.3rem;
+    max-width: 640px;
+}
+.mp-step-card {
+    background: #fff;
+    border: 1px solid #d3deef;
+    border-radius: 12px;
+    padding: 1.1rem 1.25rem;
+    margin-bottom: 0.75rem;
+    display: flex;
+    gap: 1.1rem;
+    align-items: flex-start;
+    box-shadow: 0 2px 8px rgba(6,41,82,.05);
+}
+.mp-step-num {
+    min-width: 2rem;
+    height: 2rem;
+    background: var(--navy);
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+    margin-top: 0.05rem;
+}
+.mp-step-title {
+    font-weight: 700;
+    color: var(--navy);
+    font-size: 0.95rem;
+    margin-bottom: 0.2rem;
+}
+.mp-step-desc {
+    font-size: 0.85rem;
+    color: #4a5568;
+    margin: 0;
+    line-height: 1.5;
+}
+.mp-section-head {
+    background: linear-gradient(90deg, var(--navy), #0c3f7b);
+    color: #fff;
+    border-radius: 10px 10px 0 0;
+    padding: 0.75rem 1.1rem;
+    font-weight: 700;
+    font-size: 0.92rem;
+    letter-spacing: 0.01em;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.mp-section-body {
+    background: #fff;
+    border: 1px solid #d3deef;
+    border-top: none;
+    border-radius: 0 0 10px 10px;
+    padding: 1.25rem;
+}
+.mp-prompt-box {
+    background: #0d1117;
+    color: #e6edf3;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    padding: 1.4rem;
+    font-family: 'Courier New', 'Consolas', 'Monaco', monospace;
+    font-size: 0.8rem;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 580px;
+    overflow-y: auto;
+    resize: vertical;
+    min-height: 320px;
+    outline: none;
+    user-select: all;
+}
+.mp-prompt-box::-webkit-scrollbar { width: 6px; }
+.mp-prompt-box::-webkit-scrollbar-track { background: #161b22; }
+.mp-prompt-box::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+.btn-copy {
+    background: var(--khaki);
+    color: var(--navy-dark);
+    border: 0;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.88rem;
+    padding: 0.5rem 1.3rem;
+    cursor: pointer;
+    transition: background .15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+.btn-copy:hover { background: var(--accent); }
+.btn-copy.copied { background: #1a7a3a; color: #fff; }
+.ai-platform-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: #f4f7fb;
+    border: 1px solid #d3deef;
+    border-radius: 8px;
+    padding: 0.4rem 0.9rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #344563;
+    text-decoration: none;
+}
+.ai-platform-chip:hover {
+    background: #eef4ff;
+    border-color: var(--navy);
+    color: var(--navy);
+}
+.notice-callout {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-left: 4px solid var(--accent);
+    border-radius: 8px;
+    padding: 0.9rem 1.1rem;
+    font-size: 0.86rem;
+    color: #78350f;
+}
+{% endblock %}
+
+{% block content %}
+<main class="container my-4" style="max-width: 920px;">
+
+    <!-- Hero -->
+    <div class="mp-hero">
+        <div class="d-flex align-items-center gap-3 mb-2">
+            <span style="font-size: 2rem;">🧠</span>
+            <div>
+                <div class="mp-hero-title">Master Prompt</div>
+                <div class="mp-hero-sub">This guide helps investigators interpret OSINT/SOCMINT findings using external AI tools.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- How-To Section -->
+    <div class="mb-4">
+        <div class="mp-section-head">
+            <span>📋 How to Use This with AI Tools</span>
+        </div>
+        <div class="mp-section-body">
+            <p class="text-muted mb-3" style="font-size: 0.88rem;">
+                Follow these steps to get a structured AI-assisted analysis of your OSINT findings.
+                This workflow works with ChatGPT, Claude, Gemini, or any capable AI assistant.
+            </p>
+
+            <div class="mp-step-card">
+                <div class="mp-step-num">1</div>
+                <div>
+                    <div class="mp-step-title">Run scans in the portal</div>
+                    <p class="mp-step-desc">Complete your investigation using the Main Dashboard, Infrastructure Intel, Image Intel, or any other module. Allow all scans to finish before proceeding.</p>
+                </div>
+            </div>
+
+            <div class="mp-step-card">
+                <div class="mp-step-num">2</div>
+                <div>
+                    <div class="mp-step-title">Export or capture your results</div>
+                    <p class="mp-step-desc">Use the <strong>Download PDF Report</strong> button on any results page to export findings as a structured PDF. Alternatively, take screenshots of the results cards, or use the JSON/CSV download for raw data.</p>
+                </div>
+            </div>
+
+            <div class="mp-step-card">
+                <div class="mp-step-num">3</div>
+                <div>
+                    <div class="mp-step-title">Open an external AI platform</div>
+                    <p class="mp-step-desc">Navigate to one of the supported AI platforms below. Ensure you are using a model capable of document/image analysis for best results.</p>
+                    <div class="d-flex flex-wrap gap-2 mt-2">
+    <a href="https://chat.openai.com/" target="_blank" class="text-decoration-none">
+        <span class="ai-platform-chip">ChatGPT (GPT-4o)</span>
+    </a>
+
+    <a href="https://claude.ai/" target="_blank" class="text-decoration-none">
+        <span class="ai-platform-chip">Claude (claude.ai)</span>
+    </a>
+
+    <a href="https://gemini.google.com/" target="_blank" class="text-decoration-none">
+        <span class="ai-platform-chip">Gemini Advanced</span>
+    </a>
+
+    <a href="https://copilot.microsoft.com/" target="_blank" class="text-decoration-none">
+        <span class="ai-platform-chip">Copilot</span>
+    </a>
+</div>
+                </div>
+            </div>
+
+            <div class="mp-step-card">
+                <div class="mp-step-num">4</div>
+                <div>
+                    <div class="mp-step-title">Copy and paste the Master Prompt</div>
+                    <p class="mp-step-desc">Use the <strong>Copy Prompt</strong> button below to copy the investigation analysis prompt. Paste it into the AI chat window as the first message to establish the investigator role and output format.</p>
+                </div>
+            </div>
+
+            <div class="mp-step-card">
+                <div class="mp-step-num">5</div>
+                <div>
+                    <div class="mp-step-title">Upload screenshots or paste results</div>
+                    <p class="mp-step-desc">In the same conversation, upload the PDF report or screenshots of your scan results. If using a text-only model, paste the relevant findings directly into the prompt at the marked location.</p>
+                </div>
+            </div>
+
+            <div class="mp-step-card">
+                <div class="mp-step-num">6</div>
+                <div>
+                    <div class="mp-step-title">Review and document the AI analysis</div>
+                    <p class="mp-step-desc">Ask the AI to analyse the findings. Review the output carefully. All AI-generated conclusions must be independently verified by a qualified investigator before use in any legal or operational context.</p>
+                </div>
+            </div>
+
+            <div class="notice-callout mt-3">
+                <strong>⚠ Operational Security Advisory:</strong> Do NOT upload classified, sensitive case numbers, victim details, or personally identifiable information (PII) to external AI platforms. Use anonymised or redacted data where possible. All AI outputs are advisory only.
+            </div>
+        </div>
+    </div>
+
+    <!-- Prompt Section -->
+    <div class="mb-4">
+        <div class="mp-section-head">
+            <span>📝 Investigation Analysis Master Prompt</span>
+            <button class="btn-copy" id="copyBtn" onclick="copyPrompt()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
+                    <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
+                </svg>
+                Copy Prompt
+            </button>
+        </div>
+        <div class="mp-section-body p-0">
+            <div class="p-3 pb-2" style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; font-size: 0.8rem; color: #64748b;">
+                Click <strong>Copy Prompt</strong> above, then paste into your AI platform. Add your scan results at the bottom of the prompt where indicated.
+            </div>
+            <div style="padding: 1.25rem;">
+                <div class="mp-prompt-box" id="masterPrompt" tabindex="0">
+I am a SOCMINT/OSINT analyst in a law enforcement agency. I am uploading [screenshot / file / video frame] from the tool [tool name, e.g., Maltego / Shodan / theHarvester / whois] where I queried [what you queried, e.g., a domain name / email / IP address / URL]. You act as a senior OSINT/SOCMINT analyst for a law-enforcement agency. Explain the results in a way that a non-technical investigator can understand, and to turn the output into practical investigative leads.
+Rules:
+- - Do not assume facts that are not supported by the data.
+- Keep it precise, structured, and easy to understand.
+- Explain jargon as if the reader is not from networking, cyber, or OSINT.Not too naive, bland or over technical.
+- Focus on investigation, attribution support, and evidence enrichment.
+
+Please analyse the results and provide a structured report in a document  with:
+. Case summary
+   - Give me a short, report-ready summary in plain English.
+1.Plain English explanation of every technical term or field visible in the result
+2.Investigative value — what this tells me about the target from a law enforcement perspective. Tell me how this can help identify a person, device, domain, infrastructure, pattern, timeline, location, or association.
+3.Lead generation — what follow-up queries, tools, or pivots I should try next. Include what else I should look for in the same dataset or related sources.
+4.Counter-operation utility — how this information could support a legally approved cyber operation (e.g., infrastructure mapping, attribution, disruption planning)
+5.Red flags or anomalies — anything suspicious or unusual in the results worth flagging
+6.Confidence level for each finding (High / Medium / Low)
+7. Limitations / caution
+   - Tell me what cannot be concluded from the data.
+   - Mention false positives, ambiguity, or missing context.
+8. If the data is technical, provide a non-technical summary that can be shared with non-technical stakeholders.
+
+</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom notice -->
+    <div class="notice-callout mb-4">
+        <strong>📌 Reminder:</strong> This portal is restricted to authorised Hyderabad City Police and Telangana State Police personnel. AI-generated analysis is a decision-support tool only. All investigative conclusions must be validated by a qualified officer before operational or legal use.
+    </div>
+
+</main>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function copyPrompt() {
+    const promptEl = document.getElementById('masterPrompt');
+    const btn      = document.getElementById('copyBtn');
+    const text     = promptEl.innerText || promptEl.textContent;
+
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(() => showCopied(btn)).catch(() => fallbackCopy(text, btn));
+    } else {
+        fallbackCopy(text, btn);
+    }
+}
+
+function fallbackCopy(text, btn) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try { document.execCommand('copy'); showCopied(btn); } catch (e) { alert('Copy failed — please select and copy manually.'); }
+    document.body.removeChild(ta);
+}
+
+function showCopied(btn) {
+    btn.textContent = '✓ Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => {
+        btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" viewBox="0 0 16 16"><path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/><path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/></svg> Copy Prompt`;
+        btn.classList.remove('copied');
+    }, 2500);
+}
+</script>
+{% endblock %}

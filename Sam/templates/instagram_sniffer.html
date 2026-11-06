@@ -1,0 +1,706 @@
+{% extends "base.html" %}
+{% block title %}Instagram Sniffer — OSINT Portal{% endblock %}
+
+{% block extra_css %}
+.ig-page { padding: 2rem 2rem 3rem; min-height: 100vh; max-width: 75%; margin-left: auto; margin-right: auto; }
+
+/* ── Page header ── */
+.ig-header {
+    background: linear-gradient(135deg, #833ab4 0%, #e1306c 55%, #f77737 100%);
+    border-radius: 16px;
+    padding: 1.75rem 2rem;
+    color: #fff;
+    margin-bottom: 1.75rem;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(131,58,180,0.25);
+}
+.ig-header::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(circle at 85% 40%, rgba(255,255,255,0.09) 0%, transparent 55%);
+    pointer-events: none;
+}
+.ig-header-icon {
+    width: 52px; height: 52px;
+    background: rgba(255,255,255,0.18);
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.7rem; flex-shrink: 0;
+    box-shadow: 0 0 20px rgba(255,255,255,0.12);
+}
+.ig-header h1 { font-size: 1.45rem; font-weight: 800; margin: 0 0 0.2rem; }
+.ig-header p  { font-size: 0.88rem; color: rgba(255,255,255,0.75); margin: 0; }
+.ig-badge {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 999px;
+    padding: 0.2rem 0.75rem;
+    font-size: 0.72rem; font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #fff;
+    margin-top: 0.75rem;
+    backdrop-filter: blur(4px);
+}
+
+/* ── Scan card ── */
+.ig-scan-card {
+    background: #fff;
+    border: 1px solid #dce6f5;
+    border-radius: 14px;
+    box-shadow: 0 2px 12px rgba(6,41,82,0.07);
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+}
+.ig-scan-head {
+    background: linear-gradient(135deg, #833ab4, #e1306c);
+    color: #fff;
+    padding: 0.9rem 1.25rem;
+    font-size: 0.95rem; font-weight: 700;
+    display: flex; align-items: center; gap: 0.6rem;
+}
+.ig-scan-body { padding: 1.25rem 1.5rem; }
+.ig-input-wrap { display: flex; gap: 0.65rem; align-items: center; }
+.ig-username-input {
+    flex: 1;
+    border: 1.5px solid #c8d8ef;
+    border-radius: 10px;
+    padding: 0.65rem 1rem 0.65rem 2.6rem;
+    font-size: 0.92rem;
+    color: #1a1f2b;
+    background: #f8fafd;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+.ig-username-input:focus {
+    border-color: #e1306c;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(225,48,108,0.12);
+}
+.ig-input-icon-wrap { position: relative; flex: 1; }
+.ig-input-icon {
+    position: absolute; left: 0.85rem; top: 50%;
+    transform: translateY(-50%);
+    color: #e1306c; font-size: 1rem; pointer-events: none;
+}
+.ig-run-btn {
+    padding: 0.65rem 1.75rem;
+    background: linear-gradient(135deg, #833ab4, #e1306c);
+    color: #fff; border: none; border-radius: 10px;
+    font-size: 0.9rem; font-weight: 700;
+    cursor: pointer; white-space: nowrap;
+    transition: opacity 0.15s, box-shadow 0.15s;
+    box-shadow: 0 4px 16px rgba(225,48,108,0.3);
+}
+.ig-run-btn:hover   { opacity: 0.9; box-shadow: 0 6px 20px rgba(225,48,108,0.4); }
+.ig-run-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.ig-hint { font-size: 0.79rem; color: #9aa3b8; margin-top: 0.5rem; }
+
+/* ── Loading / Error ── */
+.ig-loading { display: none; text-align: center; padding: 2rem; color: #9aa3b8; font-size: 0.88rem; }
+.ig-loading-bar {
+    height: 3px;
+    background: linear-gradient(90deg, #833ab4, #e1306c, #f77737);
+    border-radius: 2px;
+    animation: igPulse 1.4s ease-in-out infinite;
+    margin-bottom: 1rem;
+}
+@keyframes igPulse {
+    0%,100% { opacity: 0.4; transform: scaleX(0.7); }
+    50%      { opacity: 1;   transform: scaleX(1); }
+}
+.ig-error {
+    background: #fff1f2; border: 1px solid #fca5a5;
+    border-radius: 10px; padding: 1rem 1.25rem;
+    color: #991b1b; font-size: 0.88rem;
+    display: none; align-items: center; gap: 0.5rem;
+}
+.ig-results { display: none; }
+
+/* ── Pills ── */
+.ig-pill {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    border-radius: 999px; padding: 0.2rem 0.65rem;
+    font-size: 0.72rem; font-weight: 700;
+    margin-right: 0.35rem; margin-bottom: 0.35rem;
+}
+.ig-pill-private  { background: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; }
+.ig-pill-public   { background: #f0fdf4; color: #166534; border: 1px solid #86efac; }
+.ig-pill-verified { background: #eff6ff; color: #1d4ed8; border: 1px solid #93c5fd; }
+.ig-pill-cat      { background: #fdf4ff; color: #7e22ce; border: 1px solid #e9d5ff; }
+
+/* ── Summary stat cards ── */
+.ig-summary-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.85rem; margin-bottom: 1.25rem;
+}
+.ig-stat-card {
+    background: #fff; border: 1px solid #dce6f5;
+    border-radius: 12px; padding: 0.9rem 1.1rem;
+    box-shadow: 0 1px 6px rgba(6,41,82,0.05);
+    text-align: center;
+}
+.ig-stat-card-num { font-size: 1.6rem; font-weight: 800; color: #e1306c; line-height: 1; }
+.ig-stat-card-lbl { font-size: 0.72rem; color: #6b7a99; margin-top: 0.2rem; }
+
+/* ── Profile card ── */
+.ig-profile-card {
+    background: #fff; border: 1px solid #dce6f5;
+    border-radius: 14px; overflow: hidden;
+    box-shadow: 0 2px 12px rgba(6,41,82,0.07);
+    margin-bottom: 1.25rem;
+}
+.ig-profile-head {
+    background: linear-gradient(135deg, #833ab4 0%, #e1306c 55%, #f77737 100%);
+    color: #fff; padding: 1rem 1.25rem;
+    font-size: 0.88rem; font-weight: 700;
+    display: flex; align-items: center; gap: 0.5rem;
+}
+.ig-profile-body {
+    padding: 1.25rem 1.5rem;
+    display: flex; gap: 1.5rem; align-items: flex-start; flex-wrap: wrap;
+}
+.ig-avatar {
+    width: 86px; height: 86px; border-radius: 50%;
+    border: 3px solid transparent;
+    background: linear-gradient(#fff,#fff) padding-box,
+                linear-gradient(135deg,#833ab4,#e1306c,#f77737) border-box;
+    object-fit: cover; flex-shrink: 0;
+}
+.ig-avatar-placeholder {
+    width: 86px; height: 86px; border-radius: 50%;
+    background: linear-gradient(135deg,#fdf2f8,#fce7f3);
+    border: 3px solid #f9a8d4;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.2rem; color: #e1306c; flex-shrink: 0;
+}
+.ig-profile-info { flex: 1; min-width: 0; }
+.ig-profile-name   { font-size: 1.2rem; font-weight: 800; color: #1a1f2b; margin: 0 0 0.2rem; }
+.ig-profile-handle { font-size: 0.88rem; color: #6b7a99; margin: 0 0 0.6rem; }
+.ig-profile-bio    { font-size: 0.84rem; color: #374151; line-height: 1.55; margin: 0 0 0.85rem; }
+.ig-stat-row { display: flex; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+.ig-stat { text-align: center; }
+.ig-stat-num { font-size: 1.1rem; font-weight: 800; color: #1a1f2b; display: block; }
+.ig-stat-lbl { font-size: 0.68rem; color: #9aa3b8; text-transform: uppercase; letter-spacing: 0.06em; }
+.ig-ext-link {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    color: #e1306c; font-size: 0.82rem; text-decoration: none; word-break: break-all;
+}
+.ig-ext-link:hover { text-decoration: underline; }
+.ig-collab-link { color: #e1306c; text-decoration: none; font-weight: 600; }
+.ig-collab-link:hover { text-decoration: underline; }
+
+/* ── Section wrapper ── */
+.ig-section-card {
+    background: #fff; border: 1px solid #dce6f5;
+    border-radius: 14px; overflow: hidden;
+    box-shadow: 0 2px 12px rgba(6,41,82,0.07);
+    margin-bottom: 1.25rem;
+}
+.ig-section-head {
+    padding: 0.85rem 1.25rem;
+    font-size: 0.88rem; font-weight: 700;
+    display: flex; align-items: center; gap: 0.5rem; justify-content: space-between;
+}
+.ig-section-head.collab-head { background: linear-gradient(135deg,#1b4f72,#2874a6); color:#fff; }
+.ig-section-head.posts-head  { background: linear-gradient(135deg,#833ab4,#e1306c); color:#fff; }
+.ig-section-body { padding: 1.25rem 1.5rem; }
+
+/* ── Collaborator cards grid ── */
+.ig-collab-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 0.85rem;
+}
+@media (max-width: 600px) { .ig-collab-grid { grid-template-columns: repeat(2,1fr); } }
+
+.ig-collab-card {
+    background: #fff;
+    border: 1.5px solid #fce7f3;
+    border-radius: 14px;
+    padding: 1rem 0.85rem;
+    text-align: center;
+    cursor: pointer;
+    text-decoration: none;
+    display: flex; flex-direction: column; align-items: center; gap: 0.45rem;
+    transition: box-shadow 0.18s, transform 0.18s, border-color 0.18s;
+    position: relative; overflow: hidden;
+}
+.ig-collab-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, #833ab4, #e1306c, #f77737);
+    opacity: 0; transition: opacity 0.18s;
+}
+.ig-collab-card:hover {
+    box-shadow: 0 8px 28px rgba(225,48,108,0.16);
+    transform: translateY(-2px);
+    border-color: #f9a8d4;
+}
+.ig-collab-card:hover::before { opacity: 1; }
+
+.ig-cc-avatar {
+    width: 56px; height: 56px; border-radius: 50%; object-fit: cover;
+    border: 2.5px solid transparent;
+    background: linear-gradient(#fff,#fff) padding-box,
+                linear-gradient(135deg,#833ab4,#e1306c,#f77737) border-box;
+}
+.ig-cc-avatar-ph {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: linear-gradient(135deg, #833ab4, #e1306c);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 1.3rem; font-weight: 700;
+    border: 2.5px solid transparent;
+}
+.ig-cc-username { font-size: 0.82rem; font-weight: 700; color: #1a1f2b; word-break: break-all; }
+.ig-cc-fullname { font-size: 0.73rem; color: #6b7a99; word-break: break-word; min-height: 0.9rem; }
+.ig-cc-badges   { display: flex; gap: 0.25rem; justify-content: center; flex-wrap: wrap; margin-top: 0.1rem; }
+.ig-cc-ig-icon  { font-size: 0.9rem; color: #e1306c; opacity: 0.5; margin-top: 0.15rem; }
+
+/* ── Post cards grid ── */
+.ig-posts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1rem;
+}
+@media (max-width: 700px) { .ig-posts-grid { grid-template-columns: 1fr; } }
+
+.ig-post-card {
+    background: #fff;
+    border: 1px solid #f0e8f8;
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    cursor: pointer;
+    text-decoration: none;
+    transition: box-shadow 0.2s, transform 0.2s;
+    position: relative;
+}
+.ig-post-card:hover {
+    box-shadow: 0 16px 48px rgba(225,48,108,0.16), 0 6px 18px rgba(131,58,180,0.1);
+    transform: translateY(-3px);
+}
+
+/* Thumbnail section */
+.ig-post-thumb-wrap {
+    position: relative;
+    width: 100%; aspect-ratio: 1 / 1;
+    background: linear-gradient(135deg, #fdf2f8, #fce7f3);
+    overflow: hidden;
+}
+.ig-post-thumb-img {
+    width: 100%; height: 100%; object-fit: cover;
+    transition: transform 0.3s ease;
+}
+.ig-post-card:hover .ig-post-thumb-img { transform: scale(1.03); }
+.ig-post-thumb-placeholder {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, #fdf2f8, #ede9fe);
+}
+.ig-post-thumb-placeholder i { font-size: 3rem; color: #e1306c; opacity: 0.35; }
+
+/* Type overlay badge */
+.ig-post-type-overlay {
+    position: absolute; top: 10px; right: 10px;
+    display: inline-flex; align-items: center; gap: 0.25rem;
+    padding: 0.18rem 0.5rem; border-radius: 6px;
+    font-size: 0.68rem; font-weight: 700;
+    backdrop-filter: blur(8px);
+}
+.ig-post-type-video { background: rgba(109,40,217,0.82); color: #fff; }
+.ig-post-type-image { background: rgba(29,78,216,0.82);  color: #fff; }
+
+/* Collab overlay badge (bottom-left of thumb) */
+.ig-post-collab-overlay {
+    position: absolute; bottom: 10px; left: 10px;
+    display: inline-flex; align-items: center; gap: 0.25rem;
+    padding: 0.18rem 0.55rem; border-radius: 6px;
+    font-size: 0.68rem; font-weight: 700;
+    background: rgba(225,48,108,0.88); color: #fff;
+    backdrop-filter: blur(8px);
+}
+
+/* Card info section */
+.ig-post-info {
+    padding: 0.85rem 1rem;
+    flex: 1; display: flex; flex-direction: column; gap: 0.55rem;
+}
+
+/* Owner row */
+.ig-post-owner-row {
+    display: flex; align-items: center; gap: 0.5rem;
+}
+.ig-post-owner-avatar {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: linear-gradient(135deg, #833ab4, #e1306c);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 0.72rem; font-weight: 700; flex-shrink: 0;
+}
+.ig-post-owner-name { font-size: 0.82rem; font-weight: 700; color: #1a1f2b; }
+.ig-post-owner-ig   { margin-left: auto; color: #e1306c; font-size: 1rem; opacity: 0.7; }
+
+/* Stats row */
+.ig-post-stats { display: flex; gap: 0.85rem; }
+.ig-post-stat  { display: flex; align-items: center; gap: 0.25rem; font-size: 0.76rem; color: #6b7a99; }
+.ig-post-stat i { font-size: 0.82rem; }
+
+/* Collabs row */
+.ig-post-collabs-row { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+.ig-post-collab-chip {
+    display: inline-flex; align-items: center; gap: 0.2rem;
+    padding: 0.12rem 0.45rem;
+    background: #fdf2f8; color: #9d174d;
+    border: 1px solid #fce7f3; border-radius: 999px;
+    font-size: 0.68rem; font-weight: 700;
+}
+
+/* View button inside card */
+.ig-post-view-btn {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    padding: 0.4rem 0.9rem;
+    background: linear-gradient(135deg, #833ab4, #e1306c);
+    color: #fff; border: none; border-radius: 8px;
+    font-size: 0.78rem; font-weight: 700;
+    cursor: pointer; text-decoration: none;
+    align-self: flex-start;
+    transition: opacity 0.15s, box-shadow 0.15s;
+    box-shadow: 0 2px 10px rgba(225,48,108,0.25);
+}
+.ig-post-view-btn:hover { opacity: 0.88; color: #fff; box-shadow: 0 4px 16px rgba(225,48,108,0.35); }
+
+.ig-empty { text-align: center; padding: 2.5rem; color: #9aa3b8; font-size: 0.88rem; }
+{% endblock %}
+
+{% block content %}
+<div class="ig-page">
+
+    <!-- Page header -->
+    <div class="ig-header">
+        <div class="d-flex align-items-center gap-3">
+            <div class="ig-header-icon"><i class="bi bi-instagram"></i></div>
+            <div>
+                <h1>Instagram Sniffer</h1>
+                <p>Analyze Instagram account metadata and expose collaborated post intelligence</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scan input card -->
+    <div class="ig-scan-card">
+        <div class="ig-scan-head">
+            <i class="bi bi-search"></i> Instagram Username Lookup
+        </div>
+        <div class="ig-scan-body">
+            <div class="ig-input-wrap">
+                <div class="ig-input-icon-wrap">
+                    <span class="ig-input-icon"><i class="bi bi-at"></i></span>
+                    <input class="ig-username-input" type="text" id="ig-username-input"
+                           placeholder="Enter Instagram username (e.g. cristiano)"
+                           autocomplete="off" autocorrect="off" autocapitalize="none"
+                           onkeydown="if(event.key==='Enter') runInstagramScan()">
+                </div>
+                <button class="ig-run-btn" id="ig-run-btn" onclick="runInstagramScan()">
+                    <i class="bi bi-play-fill me-1"></i>Run Analysis
+                </button>
+            </div>
+            <p class="ig-hint"><i class="bi bi-info-circle me-1"></i>Enter username without @. Uses Instagram's internal web API to fetch profile data and reveal collaborated posts via edge_media_to_tagged_user.</p>
+        </div>
+    </div>
+
+    <!-- Loading -->
+    <div id="ig-loading" class="ig-loading">
+        <div class="ig-loading-bar"></div>
+        <span><span class="spinner-border spinner-border-sm me-2" style="color:#e1306c;"></span>Querying Instagram's API…</span>
+    </div>
+
+    <!-- Error -->
+    <div id="ig-error" class="ig-error" style="display:none;">
+        <i class="bi bi-exclamation-triangle-fill" style="font-size:1.1rem;flex-shrink:0;"></i>
+        <span id="ig-error-msg"></span>
+    </div>
+
+    <!-- Results -->
+    <div id="ig-results" class="ig-results">
+
+        <!-- Summary stat cards -->
+        <div class="ig-summary-row" id="ig-summary-row"></div>
+
+        <!-- Profile card -->
+        <div class="ig-profile-card" id="ig-profile-card">
+            <div class="ig-profile-head">
+                <i class="bi bi-person-circle"></i> Profile Intelligence
+            </div>
+            <div class="ig-profile-body" id="ig-profile-body"></div>
+        </div>
+
+        <!-- Collaborators card grid -->
+        <div class="ig-section-card" id="ig-collab-card" style="display:none;">
+            <div class="ig-section-head collab-head">
+                <span>
+                    <i class="bi bi-people-fill me-1"></i>Exposed Collaborators
+                    <span id="ig-collab-count-badge" class="ms-2"
+                          style="background:rgba(255,255,255,0.2);border-radius:999px;padding:.1rem .5rem;font-size:.72rem;"></span>
+                </span>
+                <span style="font-size:.72rem;color:rgba(255,255,255,0.65);font-weight:400;">
+                    Accounts exposed via collaboration tags
+                </span>
+            </div>
+            <div class="ig-section-body">
+                <div class="ig-collab-grid" id="ig-collab-grid"></div>
+            </div>
+        </div>
+
+        <!-- Post cards grid -->
+        <div class="ig-section-card" id="ig-posts-card">
+            <div class="ig-section-head posts-head">
+                <span><i class="bi bi-grid-3x3-gap-fill me-1"></i>Timeline Posts</span>
+                <span id="ig-posts-count" style="font-size:.72rem;color:rgba(255,255,255,0.65);font-weight:400;"></span>
+            </div>
+            <div class="ig-section-body">
+                <div id="ig-posts-grid"></div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function _igEsc(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function _igFmt(n) {
+    if (n === null || n === undefined) return '—';
+    if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
+    if (n >= 1_000)     return (n / 1_000).toFixed(1) + 'K';
+    return String(n);
+}
+function _igInitial(str) {
+    return String(str||'?')[0].toUpperCase();
+}
+function _igTs(ts) {
+    if (!ts) return null;
+    try {
+        const d = new Date(ts * 1000);
+        return d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+    } catch { return null; }
+}
+
+function runInstagramScan() {
+    const username = document.getElementById('ig-username-input').value.trim().replace(/^@/, '');
+    if (!username) { alert('Please enter an Instagram username.'); return; }
+
+    const btn     = document.getElementById('ig-run-btn');
+    const loading = document.getElementById('ig-loading');
+    const error   = document.getElementById('ig-error');
+    const results = document.getElementById('ig-results');
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Scanning…';
+    loading.style.display = 'block';
+    error.style.display   = 'none';
+    results.style.display = 'none';
+
+    fetch('/api/instagram-sniffer', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({username})
+    })
+    .then(r => r.json())
+    .then(d => {
+        loading.style.display = 'none';
+        if (d.error) {
+            error.style.display = 'flex';
+            document.getElementById('ig-error-msg').textContent = d.error;
+        } else {
+            renderInstagramResults(d);
+            results.style.display = 'block';
+        }
+    })
+    .catch(() => {
+        loading.style.display = 'none';
+        error.style.display = 'flex';
+        document.getElementById('ig-error-msg').textContent = 'Failed to reach the backend. Please try again.';
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-play-fill me-1"></i>Run Analysis';
+    });
+}
+
+function renderInstagramResults(data) {
+    const p       = data.profile || {};
+    const posts   = data.posts || [];
+    const collabs = data.all_collaborators || [];
+
+    /* ── Summary stat cards ── */
+    document.getElementById('ig-summary-row').innerHTML = [
+        { num: _igFmt(p.followers),                  lbl: 'Followers' },
+        { num: _igFmt(p.following),                  lbl: 'Following' },
+        { num: _igFmt(p.posts_count),                lbl: 'Total Posts' },
+        { num: data.total_posts_fetched || 0,        lbl: 'Posts Fetched' },
+        { num: data.posts_with_collaborators || 0,   lbl: 'Collab Posts' },
+        { num: collabs.length,                       lbl: 'Unique Collabs' },
+    ].map(s => `
+        <div class="ig-stat-card">
+            <div class="ig-stat-card-num">${_igEsc(s.num)}</div>
+            <div class="ig-stat-card-lbl">${_igEsc(s.lbl)}</div>
+        </div>`).join('');
+
+    /* ── Profile body ── */
+    const avatarHtml = p.profile_pic_url
+        ? `<img src="/api/instagram-image-proxy?url=${encodeURIComponent(p.profile_pic_url)}" class="ig-avatar" alt="avatar"
+               onerror="this.outerHTML='<div class=ig-avatar-placeholder><i class=\\'bi bi-instagram\\'></i></div>'">`
+        : `<div class="ig-avatar-placeholder"><i class="bi bi-instagram"></i></div>`;
+
+    const bioHtml  = p.biography ? `<p class="ig-profile-bio">${_igEsc(p.biography)}</p>` : '';
+    const extHtml  = p.external_url
+        ? `<a href="${_igEsc(p.external_url)}" target="_blank" rel="noopener noreferrer" class="ig-ext-link">
+               <i class="bi bi-link-45deg"></i>${_igEsc(p.external_url)}</a>`
+        : '';
+    const pillsHtml = [
+        p.is_private ? `<span class="ig-pill ig-pill-private"><i class="bi bi-lock-fill"></i>Private</span>`
+                     : `<span class="ig-pill ig-pill-public"><i class="bi bi-unlock-fill"></i>Public</span>`,
+        p.is_verified ? `<span class="ig-pill ig-pill-verified"><i class="bi bi-patch-check-fill"></i>Verified</span>` : '',
+        p.category    ? `<span class="ig-pill ig-pill-cat">${_igEsc(p.category)}</span>` : '',
+        p.id          ? `<span class="ig-pill" style="background:#f0f4fa;color:#4a5568;border:1px solid #c8d8ef;">
+                             <i class="bi bi-fingerprint"></i>ID: ${_igEsc(p.id)}</span>` : '',
+    ].join('');
+
+    document.getElementById('ig-profile-body').innerHTML = `
+        ${avatarHtml}
+        <div class="ig-profile-info">
+            <p class="ig-profile-name">${_igEsc(p.full_name || p.username)}</p>
+            <p class="ig-profile-handle">
+                <a href="${_igEsc(p.profile_url||'#')}" target="_blank" rel="noopener noreferrer" class="ig-collab-link">
+                    @${_igEsc(p.username)}
+                </a>
+            </p>
+            <div>${pillsHtml}</div>
+            ${bioHtml}
+            <div class="ig-stat-row">
+                <div class="ig-stat"><span class="ig-stat-num">${_igFmt(p.followers)}</span><span class="ig-stat-lbl">Followers</span></div>
+                <div class="ig-stat"><span class="ig-stat-num">${_igFmt(p.following)}</span><span class="ig-stat-lbl">Following</span></div>
+                <div class="ig-stat"><span class="ig-stat-num">${_igFmt(p.posts_count)}</span><span class="ig-stat-lbl">Posts</span></div>
+            </div>
+            ${extHtml}
+        </div>`;
+
+    /* ── Collaborator card grid ── */
+    if (collabs.length > 0) {
+        document.getElementById('ig-collab-card').style.display = '';
+        document.getElementById('ig-collab-count-badge').textContent = collabs.length + ' found';
+
+        document.getElementById('ig-collab-grid').innerHTML = collabs.map(c => {
+            const initial = _igInitial(c.username);
+            const avatarHtml = c.profile_pic
+                ? `<img src="${_igEsc(c.profile_pic)}" class="ig-cc-avatar" alt=""
+                       onerror="this.outerHTML='<div class=ig-cc-avatar-ph>${_igEsc(initial)}</div>'">`
+                : `<div class="ig-cc-avatar-ph">${_igEsc(initial)}</div>`;
+
+            const privBadge = c.is_private
+                ? `<span class="ig-pill ig-pill-private" style="font-size:.62rem;padding:.1rem .4rem;">
+                       <i class="bi bi-lock-fill"></i>Private</span>`
+                : `<span class="ig-pill ig-pill-public" style="font-size:.62rem;padding:.1rem .4rem;">
+                       <i class="bi bi-unlock-fill"></i>Public</span>`;
+            const verBadge = c.is_verified
+                ? `<span class="ig-pill ig-pill-verified" style="font-size:.62rem;padding:.1rem .4rem;">
+                       <i class="bi bi-patch-check-fill"></i></span>` : '';
+
+            return `<a href="${_igEsc(c.profile_url)}" target="_blank" rel="noopener noreferrer"
+                       class="ig-collab-card" title="View @${_igEsc(c.username)} on Instagram">
+                ${avatarHtml}
+                <span class="ig-cc-username">@${_igEsc(c.username)}</span>
+                <span class="ig-cc-fullname">${_igEsc(c.full_name || '')}</span>
+                <div class="ig-cc-badges">${privBadge}${verBadge}</div>
+                <i class="bi bi-instagram ig-cc-ig-icon"></i>
+            </a>`;
+        }).join('');
+    } else {
+        document.getElementById('ig-collab-card').style.display = 'none';
+    }
+
+    /* ── Post cards grid ── */
+    document.getElementById('ig-posts-count').textContent = `${posts.length} post(s) fetched`;
+
+    if (posts.length === 0) {
+        document.getElementById('ig-posts-grid').innerHTML = `
+            <div class="ig-empty">
+                <i class="bi bi-camera" style="font-size:2.5rem;display:block;margin-bottom:.6rem;opacity:.35;"></i>
+                No posts visible in the public timeline.
+            </div>`;
+    } else {
+        document.getElementById('ig-posts-grid').innerHTML =
+            `<div class="ig-posts-grid">${posts.map(post => _renderPostCard(post)).join('')}</div>`;
+    }
+}
+
+function _renderPostCard(post) {
+    /* Thumbnail section — routed through server-side proxy to bypass CDN hotlink protection */
+    const thumbHtml = post.thumbnail
+        ? `<img src="/api/instagram-image-proxy?url=${encodeURIComponent(post.thumbnail)}" class="ig-post-thumb-img" alt=""
+               onerror="this.parentElement.innerHTML='<div class=ig-post-thumb-placeholder><i class=\\'bi bi-camera\\'></i></div>'">`
+        : `<div class="ig-post-thumb-placeholder"><i class="bi bi-camera"></i></div>`;
+
+    const typeOverlay = post.type === 'video'
+        ? `<span class="ig-post-type-overlay ig-post-type-video"><i class="bi bi-play-fill"></i>Reel</span>`
+        : `<span class="ig-post-type-overlay ig-post-type-image"><i class="bi bi-image"></i>Post</span>`;
+
+    const collabOverlay = post.collaborators.length > 0
+        ? `<span class="ig-post-collab-overlay"><i class="bi bi-people-fill"></i>${post.collaborators.length} collab${post.collaborators.length>1?'s':''}</span>`
+        : '';
+
+    /* Owner row */
+    const ownerInitial = _igInitial(post.owner);
+    const ownerRow = `
+        <div class="ig-post-owner-row">
+            <div class="ig-post-owner-avatar">${_igEsc(ownerInitial)}</div>
+            <span class="ig-post-owner-name">@${_igEsc(post.owner)}</span>
+            <i class="bi bi-instagram ig-post-owner-ig"></i>
+        </div>`;
+
+    /* Stats */
+    const statsHtml = (post.likes !== null && post.likes !== undefined) || (post.comments !== null && post.comments !== undefined)
+        ? `<div class="ig-post-stats">
+               ${post.likes    !== null && post.likes    !== undefined ? `<span class="ig-post-stat"><i class="bi bi-heart-fill" style="color:#e1306c;"></i> ${_igFmt(post.likes)}</span>` : ''}
+               ${post.comments !== null && post.comments !== undefined ? `<span class="ig-post-stat"><i class="bi bi-chat-fill" style="color:#6b7a99;"></i> ${_igFmt(post.comments)}</span>` : ''}
+               ${_igTs(post.timestamp) ? `<span class="ig-post-stat" style="margin-left:auto;"><i class="bi bi-calendar3"></i> ${_igEsc(_igTs(post.timestamp))}</span>` : ''}
+           </div>`
+        : '';
+
+    /* Collaborators chips (max 3 shown, rest summarised) */
+    let collabsHtml = '';
+    if (post.collaborators.length > 0) {
+        const shown = post.collaborators.slice(0, 3);
+        const extra = post.collaborators.length - 3;
+        collabsHtml = `<div class="ig-post-collabs-row">
+            <span style="font-size:.7rem;color:#9aa3b8;">with:</span>
+            ${shown.map(c => `<span class="ig-post-collab-chip">@${_igEsc(c.username)}</span>`).join('')}
+            ${extra > 0 ? `<span class="ig-post-collab-chip" style="background:#f5f3ff;color:#6d28d9;border-color:#ede9fe;">+${extra} more</span>` : ''}
+        </div>`;
+    }
+
+    return `
+        <a href="${_igEsc(post.url)}" target="_blank" rel="noopener noreferrer" class="ig-post-card">
+            <div class="ig-post-thumb-wrap">
+                ${thumbHtml}
+                ${typeOverlay}
+                ${collabOverlay}
+            </div>
+            <div class="ig-post-info">
+                ${ownerRow}
+                ${statsHtml}
+                ${collabsHtml}
+                <span class="ig-post-view-btn">
+                    <i class="bi bi-box-arrow-up-right"></i>View on Instagram
+                </span>
+            </div>
+        </a>`;
+}
+</script>
+{% endblock %}

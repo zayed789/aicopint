@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block title %}My Profile — AI-COPINT Portal{% endblock %}
+
+{% block extra_css %}
+.profile-page { padding: 2rem 2.5rem; max-width: 860px; }
+.profile-hero {
+    background: linear-gradient(120deg, #041d39, #062952);
+    border-radius: 14px; padding: 1.8rem 2rem;
+    display: flex; align-items: center; gap: 1.5rem;
+    margin-bottom: 1.5rem; color: #fff;
+}
+.profile-avatar-lg {
+    width: 72px; height: 72px; border-radius: 50%;
+    background: linear-gradient(135deg, #cab58a, #f3c14b);
+    color: #041d39; font-size: 2rem; font-weight: 900;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; border: 3px solid rgba(255,255,255,0.2);
+}
+.profile-hero-name { font-size: 1.3rem; font-weight: 700; margin-bottom: .25rem; }
+.profile-hero-meta { font-size: .85rem; color: #b8cef0; }
+.role-badge {
+    display: inline-block; background: rgba(202,181,138,0.2);
+    color: #f3c14b; border: 1px solid rgba(202,181,138,0.35);
+    border-radius: 999px; padding: .2rem .7rem;
+    font-size: .75rem; font-weight: 700; text-transform: capitalize;
+    margin-left: .5rem; vertical-align: middle;
+}
+.profile-card {
+    background: #fff; border: 1px solid #dce6f5;
+    border-radius: 14px; box-shadow: 0 4px 20px rgba(6,41,82,0.07);
+    margin-bottom: 1.25rem; overflow: hidden;
+}
+.profile-card-head {
+    background: linear-gradient(90deg, #062952, #0c3f7b);
+    color: #fff; padding: .7rem 1.2rem;
+    font-weight: 600; font-size: .9rem;
+}
+.form-label { font-size: .87rem; font-weight: 600; color: #062952; }
+.form-control { border: 1px solid #9eb3d2; border-radius: .6rem; min-height: 42px; font-size: .93rem; }
+.form-control:focus { border-color: #2f67b1; box-shadow: 0 0 0 .2rem rgba(47,103,177,.18); }
+.btn-save { background: #062952; color: #fff; border: 0; border-radius: .6rem; padding: .55rem 1.4rem; font-weight: 700; font-size: .92rem; transition: background .15s; }
+.btn-save:hover { background: #0f4687; color: #fff; }
+.info-kv { display: flex; align-items: center; padding: .6rem 1.2rem; border-bottom: 1px solid #f0f4f9; font-size: .9rem; }
+.info-kv:last-child { border-bottom: none; }
+.info-key { width: 160px; min-width: 140px; color: #888; font-size: .82rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.info-val { color: #1a1f2b; font-weight: 500; }
+{% endblock %}
+
+{% block content %}
+<div class="profile-page">
+
+    <div class="profile-hero">
+        <div class="profile-avatar-lg">{{ (session.get('full_name') or 'O')[0:1] | upper }}</div>
+        <div>
+            <div class="profile-hero-name">
+                {{ user.full_name }}
+                <span class="role-badge">{{ user.role }}</span>
+            </div>
+            <div class="profile-hero-meta">@{{ user.username }}</div>
+            {% if user.last_login %}
+                <div class="profile-hero-meta" style="margin-top:.25rem;">Last login: {{ user.last_login.strftime('%d %b %Y, %H:%M UTC') }}</div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if success %}
+        <div class="alert alert-success py-2 mb-3" style="font-size:.9rem;">{{ success }}</div>
+    {% endif %}
+    {% if error %}
+        <div class="alert alert-danger py-2 mb-3" style="font-size:.9rem;">{{ error }}</div>
+    {% endif %}
+
+    <!-- Account Info -->
+    <div class="profile-card">
+        <div class="profile-card-head">Account Information</div>
+        <div>
+            <div class="info-kv"><span class="info-key">Username</span><span class="info-val">{{ user.username }}</span></div>
+            <div class="info-kv"><span class="info-key">Role</span><span class="info-val" style="text-transform:capitalize;">{{ 'Admin' if user.role == 'admin' else 'Officer' }}</span></div>
+            <div class="info-kv"><span class="info-key">Status</span>
+                <span class="info-val">
+                    {% if user.account_locked %}
+                        <span style="color:#856404;font-weight:700;">● Locked</span>
+                    {% elif user.is_active %}
+                        <span style="color:#1f7a3f;font-weight:700;">● Active</span>
+                    {% else %}
+                        <span style="color:#9c1f1f;font-weight:700;">● Disabled</span>
+                    {% endif %}
+                </span>
+            </div>
+            <div class="info-kv"><span class="info-key">Joined</span><span class="info-val">{{ user.created_at.strftime('%d %b %Y') }}</span></div>
+        </div>
+    </div>
+
+    <!-- Edit Profile -->
+    <div class="profile-card">
+        <div class="profile-card-head">Edit Profile</div>
+        <div class="p-3 p-md-4">
+            <form method="POST" action="/profile/update">
+                <div class="row g-3 mb-3">
+                    <div class="col-sm-6">
+                        <label class="form-label">Full Name</label>
+                        <input type="text" name="full_name" class="form-control"
+                               value="{{ user.full_name }}" required maxlength="100">
+                    </div>
+                </div>
+                <button type="submit" class="btn-save">Save Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Change Password -->
+    <div class="profile-card">
+        <div class="profile-card-head">Change Password</div>
+        <div class="p-3 p-md-4">
+            <form method="POST" action="/profile/change-password">
+                <div class="row g-3 mb-3">
+                    <div class="col-sm-4">
+                        <label class="form-label">Current Password</label>
+                        <div class="input-group">
+                            <input type="password" name="current_password" id="cp1" class="form-control" placeholder="Current" required>
+                            <button type="button" class="btn btn-outline-secondary" onclick="togglePw('cp1')" tabindex="-1" style="border-color:#9eb3d2;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/><path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <label class="form-label">New Password</label>
+                        <div class="input-group">
+                            <input type="password" name="new_password" id="cp2" class="form-control" placeholder="New" required>
+                            <button type="button" class="btn btn-outline-secondary" onclick="togglePw('cp2')" tabindex="-1" style="border-color:#9eb3d2;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/><path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <label class="form-label">Confirm New</label>
+                        <div class="input-group">
+                            <input type="password" name="confirm_password" id="cp3" class="form-control" placeholder="Confirm" required>
+                            <button type="button" class="btn btn-outline-secondary" onclick="togglePw('cp3')" tabindex="-1" style="border-color:#9eb3d2;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/><path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="btn-save">Change Password</button>
+            </form>
+        </div>
+    </div>
+
+</div>
+<script>
+function togglePw(id) {
+    var el = document.getElementById(id);
+    el.type = el.type === 'password' ? 'text' : 'password';
+}
+</script>
+{% endblock %}

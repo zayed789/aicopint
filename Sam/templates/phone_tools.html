@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OSINT Portal - Phone Intelligence</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --navy: #062952;
+            --navy-dark: #041d39;
+            --khaki: #cab58a;
+            --khaki-soft: #e2d3b2;
+            --accent: #f3c14b;
+            --surface: #f4f7fb;
+        }
+
+        body {
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--surface);
+            color: #1a1f2b;
+        }
+
+        .gov-top {
+            background: var(--navy-dark);
+            color: #dce7fb;
+            font-size: 0.85rem;
+            padding: 0.5rem 0;
+        }
+
+        .gov-header {
+            background: linear-gradient(120deg, var(--navy-dark), var(--navy));
+            color: #fff;
+            border-bottom: 4px solid var(--khaki);
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.2);
+        }
+
+        .brand-block {
+            display: flex;
+            align-items: center;
+            gap: 0.9rem;
+        }
+
+        .emblem {
+            width: 235px;
+            height: 70px;
+            object-fit: contain;
+            background: #fff;
+            border: 2px solid #fff;
+            border-radius: 6px;
+            padding: 2px;
+        }
+
+        .header-title {
+            margin: 0;
+            font-size: 1.2rem;
+            letter-spacing: 0.02em;
+            font-weight: 700;
+        }
+
+        .header-subtitle {
+            margin: 0;
+            font-size: 0.9rem;
+            color: #d9e5ff;
+        }
+
+        .notice-bar {
+            background: #f4e4be;
+            border-top: 1px solid #ddc993;
+            border-bottom: 1px solid #ddc993;
+            color: #4e3d16;
+            font-size: 0.9rem;
+        }
+
+        .portal-card {
+            background: #fff;
+            border: 1px solid #d3deef;
+            border-radius: 14px;
+            box-shadow: 0 10px 24px rgba(6, 41, 82, 0.08);
+        }
+
+        .section-head {
+            background: linear-gradient(90deg, var(--navy), #0c3f7b);
+            color: #fff;
+            border-radius: 12px 12px 0 0;
+            padding: 0.8rem 1rem;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+        }
+
+        .input-control {
+            border: 1px solid #9eb3d2;
+            border-radius: 0.6rem;
+            min-height: 48px;
+        }
+
+        .input-control:focus {
+            border-color: #2f67b1;
+            box-shadow: 0 0 0 0.2rem rgba(47, 103, 177, 0.2);
+        }
+
+        .btn-intel {
+            background: var(--navy);
+            color: #fff;
+            border: 0;
+            min-width: 140px;
+            font-weight: 600;
+        }
+
+        .btn-intel:hover {
+            background: #0f4687;
+            color: #fff;
+        }
+
+        .service-tile {
+            border-left: 4px solid var(--khaki);
+            background: #fff;
+            border-radius: 10px;
+            padding: 0.8rem 1rem;
+            box-shadow: 0 6px 14px rgba(6, 41, 82, 0.06);
+            font-size: 0.92rem;
+        }
+
+        .tool-picker {
+            border: 1px solid #d8e2f1;
+            border-radius: 10px;
+            background: #f8fbff;
+            padding: 0.8rem;
+        }
+
+        .intel-box {
+            background: #fff;
+            border: 1px solid #c9d7ef;
+            border-radius: 10px;
+            padding: 1rem;
+            height: 100%;
+        }
+
+        .result-card {
+            border: 1px solid #c9d7ef;
+            border-radius: 10px;
+            background: #fff;
+            height: 100%;
+        }
+
+        .result-card .domain {
+            color: #0d4f93;
+            font-weight: 700;
+            margin-bottom: 0.4rem;
+        }
+
+        .tag-hit {
+            display: inline-block;
+            background: #e6f5ea;
+            color: #1f7a3f;
+            border: 1px solid #b7e5c6;
+            border-radius: 999px;
+            padding: 0.2rem 0.6rem;
+            font-size: 0.78rem;
+            margin-bottom: 0.7rem;
+        }
+
+        footer {
+            color: #dbe7ff;
+            background: var(--navy-dark);
+            font-size: 0.88rem;
+        }
+
+        .tool-nav-pills .nav-link {
+            color: var(--navy);
+            border: 1px solid #d8e2f1;
+            border-radius: 8px;
+            margin-right: 0.5rem;
+            padding: 0.5rem 1rem;
+            font-weight: 500;
+        }
+
+        .tool-nav-pills .nav-link.active {
+            background: var(--navy);
+            color: #fff;
+        }
+
+        .tool-nav-pills .nav-link:hover {
+            background: #e8f0fa;
+        }
+
+        .tool-nav-pills .nav-link.active:hover {
+            background: var(--navy);
+        }
+    </style>
+</head>
+<body>
+    <div class="gov-top">
+        <div class="container d-flex justify-content-between">
+            <span>Official OSINT Utility Portal</span>
+            <span>For authorized cyber investigation and verification use</span>
+        </div>
+    </div>
+
+    <header class="gov-header py-3">
+        <div class="container">
+            <!-- Row 1: Logo and User Info -->
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-2">
+                <div class="brand-block">
+                    <div>
+                        <p class="header-title">Repo of OSINT/SOCMINT</p>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    {% if police_email %}
+                        <span class="badge bg-info text-dark px-3 py-2">{{ police_email }}</span>
+                    {% endif %}
+                    {% if police_role %}
+                        <span class="badge bg-warning text-dark px-3 py-2 text-uppercase">{{ police_role }}</span>
+                    {% endif %}
+                    <a href="/logout" class="btn btn-sm btn-outline-light">Logout</a>
+                </div>
+            </div>
+            <!-- Row 2: Navigation Buttons -->
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <a href="/" class="btn btn-sm {% if request.path == '/' %}btn-light text-dark{% else %}btn-outline-light{% endif %}">Main Dashboard</a>
+                <a href="/tools/email" class="btn btn-sm {% if request.path.startswith('/tools/email') %}btn-light text-dark{% else %}btn-outline-light{% endif %}">Email Tools</a>
+                <a href="/tools/phone" class="btn btn-sm {% if request.path.startswith('/tools/phone') %}btn-light text-dark{% else %}btn-outline-light{% endif %}">Phone Tools</a>
+                <a href="/tools/username" class="btn btn-sm {% if request.path.startswith('/tools/username') %}btn-light text-dark{% else %}btn-outline-light{% endif %}">Username Tools</a>
+                <a href="/image-intel/" class="btn btn-sm {% if request.path.startswith('/image-intel') %}btn-light text-dark{% else %}btn-outline-light{% endif %}">🖼️ Image Intel</a>
+                <a href="/web-links" class="btn btn-sm {% if request.path.startswith('/web-links') %}btn-light text-dark{% else %}btn-outline-light{% endif %}">Web Base Links</a>
+                <a href="/commercial-links" class="btn btn-sm {% if request.path.startswith('/commercial-links') %}btn-light text-dark{% else %}btn-outline-light{% endif %}">Commercial Links</a>
+                {% if police_role == "admin" %}
+                    <a href="/admin/users" class="btn btn-sm {% if request.path.startswith('/admin') %}btn-light text-dark{% else %}btn-outline-light{% endif %}">Admin Panel</a>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <div class="notice-bar py-2">
+        <div class="container">
+            <strong>Advisory:</strong> Use only with lawful authorization. Unauthorized probing or data misuse is punishable.
+        </div>
+    </div>
+
+    <main class="container my-4 my-md-5">
+        <div class="portal-card">
+            <div class="section-head">Phone Intelligence — OSINT Tools</div>
+            <div class="p-3 p-md-4">
+                <div class="tool-nav-pills mb-4">
+                    <a href="/tools/email" class="nav-link {% if tool_type == 'email' %}active{% endif %}">Email Tools</a>
+                    <a href="/tools/phone" class="nav-link {% if tool_type == 'phone' %}active{% endif %}">Phone Tools</a>
+                    <a href="/tools/username" class="nav-link {% if tool_type == 'username' %}active{% endif %}">Username Tools</a>
+                </div>
+
+                <p class="text-muted mb-3">Run phone-based OSINT checks for metadata enrichment and public search pivots.</p>
+                <form method="POST" class="mb-3">
+                    <div class="row g-2">
+                        <div class="col-md-8">
+                            <input type="text" name="phone" class="form-control input-control" placeholder="Enter phone number (e.g., +1XXXXXXXXXX)" value="{{ phone or '' }}">
+                        </div>
+                        <div class="col-md-4 d-grid">
+                            <button type="submit" class="btn btn-intel input-control">Run Scan</button>
+                        </div>
+                    </div>
+                    <div class="tool-picker mt-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="fw-semibold">Select Phone OSINT Tools</div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="select-all-tools" onclick="toggleAllTools(this)">
+                                <label class="form-check-label fw-semibold" for="select-all-tools">Select All</label>
+                            </div>
+                        </div>
+                        <div class="row g-2">
+                            {% for tool in phone_tools %}
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input tool-checkbox" type="checkbox" name="tools" value="{{ tool.id }}" id="tool-{{ tool.id }}"
+                                               {% if selected_tools and tool.id in selected_tools %}checked{% endif %}>
+                                        <label class="form-check-label" for="tool-{{ tool.id }}">{{ tool.label }}</label>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <script>
+                        function toggleAllTools(source) {
+                            const checkboxes = document.querySelectorAll('.tool-checkbox');
+                            for (let checkbox of checkboxes) {
+                                checkbox.checked = source.checked;
+                            }
+                        }
+                    </script>
+                </form>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <div class="service-tile"><strong>INT-01:</strong> Phone metadata extraction</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="service-tile"><strong>INT-02:</strong> Carrier & region identification</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="service-tile"><strong>INT-03:</strong> Public search pivots</div>
+                    </div>
+                </div>
+
+                {% if error %}
+                    <div class="alert alert-danger">{{ error }}</div>
+                {% endif %}
+
+                {% if phone_result %}
+                    <div class="row g-3 mb-4">
+                        <div class="col-12">
+                            <div class="intel-box">
+                                <h3 class="h6 mb-2">Phone Intelligence</h3>
+                                {% if phone_result.valid %}
+                                    <span class="tag-hit">Valid Number Format</span>
+                                    <p class="mb-1 mt-2"><small><strong>E.164:</strong> {{ phone_result.e164 }}</small></p>
+                                    <p class="mb-1"><small><strong>International:</strong> {{ phone_result.international }}</small></p>
+                                    <p class="mb-1"><small><strong>National:</strong> {{ phone_result.national }}</small></p>
+                                    <p class="mb-1"><small><strong>Region:</strong> {{ phone_result.region }}</small></p>
+                                    <p class="mb-1"><small><strong>Carrier:</strong> {{ phone_result.carrier }}</small></p>
+                                    <p class="mb-1"><small><strong>Type:</strong> {{ phone_result.number_type }}</small></p>
+                                    <p class="mb-2"><small><strong>Possible:</strong> {{ "Yes" if phone_result.possible else "No" }}</small></p>
+                                    {% if phone_result.timezones %}
+                                        <p class="mb-1"><small><strong>Timezones:</strong> {{ phone_result.timezones|join(', ') }}</small></p>
+                                    {% endif %}
+                                    <p class="mb-1 mt-2"><small><strong>Public search pivots:</strong></small></p>
+                                    {% for link in phone_result.search_links %}
+                                        <p class="mb-1"><small><a href="{{ link.url }}" target="_blank">{{ link.name }}</a></small></p>
+                                    {% endfor %}
+                                {% else %}
+                                    <p class="mb-0"><small>{{ phone_result.error }}</small></p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </main>
+
+    <footer class="py-3 mt-5">
+        <div class="container text-center">
+            <p class="mb-0">Telangana Police - Cyber Intelligence Wing | Authorized Access Only</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

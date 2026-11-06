@@ -1,0 +1,367 @@
+{% extends "base.html" %}
+{% block title %}Admin — Officer Management{% endblock %}
+
+{% block extra_css %}
+.admin-hero { background:linear-gradient(120deg,#041d39,#062952); border-radius:14px; padding:1.4rem 1.8rem; color:#fff; margin-bottom:1.5rem; }
+.admin-hero h2 { font-size:1.2rem; font-weight:700; margin:0 0 .25rem; }
+.admin-hero p  { font-size:.84rem; color:#b8cef0; margin:0; }
+.stat-card { background:#fff; border:1px solid #dce6f5; border-radius:10px; padding:1rem 1.2rem; text-align:center; }
+.stat-num  { font-size:1.9rem; font-weight:800; color:#062952; line-height:1; }
+.stat-lbl  { font-size:.75rem; color:#8899b0; font-weight:600; text-transform:uppercase; letter-spacing:.05em; margin-top:.2rem; }
+.portal-card { background:#fff; border:1px solid #dce6f5; border-radius:14px; box-shadow:0 4px 20px rgba(6,41,82,0.06); margin-bottom:1.25rem; overflow:hidden; }
+.section-head { background:linear-gradient(90deg,#062952,#0c3f7b); color:#fff; padding:.7rem 1.2rem; font-weight:600; font-size:.9rem; }
+.form-label { font-size:.83rem; font-weight:700; color:#062952; letter-spacing:.02em; text-transform:uppercase; margin-bottom:.35rem; display:block; }
+.form-control,.form-select {
+    border:1.5px solid #c8d8ee; border-radius:.55rem;
+    height:48px; font-size:.93rem; padding:0 .85rem;
+    background:#fff; color:#1a1f2b;
+    transition:border-color .15s, box-shadow .15s;
+}
+.form-control:focus,.form-select:focus { border-color:#2f67b1; box-shadow:0 0 0 3px rgba(47,103,177,.12); outline:none; }
+.form-control::placeholder { color:#b0bac8; }
+.input-group .form-control { border-right:0; border-radius:.55rem 0 0 .55rem; }
+.input-group .pw-eye {
+    height:48px; width:46px; padding:0;
+    background:#fff; border:1.5px solid #c8d8ee; border-left:0;
+    border-radius:0 .55rem .55rem 0; color:#8899b0;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; transition:color .15s, background .15s;
+}
+.input-group .pw-eye:hover { color:#062952; background:#f0f5fc; }
+.input-group:focus-within .pw-eye { border-color:#2f67b1; }
+.field-hint { font-size:.75rem; color:#94a3b8; margin-top:.3rem; line-height:1.4; }
+.btn-navy {
+    background:#062952; color:#fff; border:0;
+    border-radius:.55rem; height:48px; padding:0 1.4rem;
+    font-weight:700; font-size:.92rem; letter-spacing:.02em;
+    transition:background .15s, box-shadow .15s; white-space:nowrap;
+}
+.btn-navy:hover { background:#0f4687; color:#fff; box-shadow:0 4px 12px rgba(6,41,82,.25); }
+.btn-navy:active { background:#041d39; }
+
+/* ── Create officer form ─────────────────────────────────────────────────── */
+.create-form-grid {
+    display:grid;
+    grid-template-columns: 1fr 1fr 1fr 140px auto;
+    gap:20px;
+    align-items:start;
+}
+.create-form-grid .btn-col { display:flex; flex-direction:column; }
+.create-form-grid .btn-col .btn-navy { width:100%; }
+@media (max-width:1100px) {
+    .create-form-grid { grid-template-columns: 1fr 1fr; }
+    .create-form-grid .btn-col { grid-column:1/-1; }
+    .create-form-grid .btn-col .btn-navy { width:auto; padding:0 2rem; }
+}
+@media (max-width:600px) {
+    .create-form-grid { grid-template-columns:1fr; }
+}
+.badge-admin    { background:#fef3cd; color:#856404; border:1px solid #fde68a; border-radius:999px; padding:.18rem .55rem; font-size:.72rem; font-weight:700; }
+.badge-officer  { background:#e8f4fd; color:#0d5c99; border:1px solid #bee5fb; border-radius:999px; padding:.18rem .55rem; font-size:.72rem; font-weight:700; }
+.badge-active   { background:#e6f9ed; color:#1f7a3f; border:1px solid #b7e5c6; border-radius:999px; padding:.18rem .55rem; font-size:.72rem; font-weight:700; }
+.badge-inactive { background:#fce8e8; color:#9c1f1f; border:1px solid #f5bcbc; border-radius:999px; padding:.18rem .55rem; font-size:.72rem; font-weight:700; }
+.badge-locked   { background:#fff3cd; color:#856404; border:1px solid #fde68a; border-radius:999px; padding:.18rem .55rem; font-size:.72rem; font-weight:700; }
+.officer-row td { vertical-align:middle; font-size:.88rem; }
+.btn-sm-act { border-radius:.5rem; padding:.28rem .65rem; font-size:.78rem; font-weight:600; border:0; cursor:pointer; }
+.modal-header { background:linear-gradient(90deg,#062952,#0c3f7b); color:#fff; }
+.modal-header .btn-close { filter:invert(1); }
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 px-4">
+
+    <!-- Hero -->
+    <div class="admin-hero">
+        <h2>Officer Management</h2>
+        <p>Create, edit, and manage officer accounts. All actions are audit-logged.</p>
+    </div>
+
+    <!-- Alerts -->
+    {% if error %}
+        <div class="alert alert-danger py-2 mb-3" style="font-size:.9rem;">{{ error }}</div>
+    {% endif %}
+    {% if success %}
+        <div class="alert alert-success py-2 mb-3" style="font-size:.9rem;">{{ success }}</div>
+    {% endif %}
+
+    <!-- Stats row -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3"><div class="stat-card"><div class="stat-num">{{ stats.total }}</div><div class="stat-lbl">Total Accounts</div></div></div>
+        <div class="col-6 col-md-3"><div class="stat-card"><div class="stat-num" style="color:#1f7a3f;">{{ stats.active }}</div><div class="stat-lbl">Active</div></div></div>
+        <div class="col-6 col-md-3"><div class="stat-card"><div class="stat-num" style="color:#9c1f1f;">{{ stats.locked }}</div><div class="stat-lbl">Locked</div></div></div>
+        <div class="col-6 col-md-3"><div class="stat-card"><div class="stat-num" style="color:#856404;">{{ stats.officers }}</div><div class="stat-lbl">Officers</div></div></div>
+    </div>
+
+    <!-- Create officer -->
+    <div class="portal-card mb-4">
+        <div class="section-head" style="display:flex;align-items:center;gap:.6rem;">
+            <i class="bi bi-person-plus-fill" style="font-size:1rem;opacity:.85;"></i>
+            Create New Officer Account
+        </div>
+        <div style="padding:1.6rem 1.8rem 1.8rem;">
+            <form method="POST" action="/admin/officers/create" class="create-form-grid">
+
+                <!-- Full Name -->
+                <div>
+                    <label class="form-label" for="cf_full_name">Full Name</label>
+                    <input type="text" id="cf_full_name" name="full_name" class="form-control"
+                           placeholder="e.g. Rajesh Kumar" maxlength="100" required autocomplete="off">
+                </div>
+
+                <!-- Username -->
+                <div>
+                    <label class="form-label" for="cf_username">Username</label>
+                    <input type="text" id="cf_username" name="username" class="form-control"
+                           placeholder="e.g. officer_raj" maxlength="30"
+                           pattern="[a-zA-Z0-9_.]{1,30}" required autocomplete="off">
+                    <div class="field-hint">Letters, numbers, _ and . only &mdash; max 30 chars.</div>
+                </div>
+
+                <!-- Password -->
+                <div>
+                    <label class="form-label" for="createPw">Password</label>
+                    <div class="input-group">
+                        <input type="password" id="createPw" name="password" class="form-control"
+                               placeholder="Set a strong password" required autocomplete="new-password">
+                        <button type="button" class="pw-eye" onclick="togglePw('createPw')" tabindex="-1" title="Show/hide password">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="currentColor" viewBox="0 0 16 16"><path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/><path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/></svg>
+                        </button>
+                    </div>
+                    <div class="field-hint">Min 8 chars &mdash; uppercase, number, special character.</div>
+                </div>
+
+                <!-- Role -->
+                <div>
+                    <label class="form-label" for="cf_role">Role</label>
+                    <select id="cf_role" name="role" class="form-select">
+                        <option value="officer">Officer</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+
+                <!-- Submit — spacer label keeps button baseline-aligned with inputs -->
+                <div class="btn-col">
+                    <label class="form-label" aria-hidden="true" style="visibility:hidden;user-select:none;">&nbsp;</label>
+                    <button type="submit" class="btn-navy">
+                        <i class="bi bi-person-check-fill me-1"></i> Create Account
+                    </button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    <!-- Search / filter -->
+    <div class="portal-card mb-3">
+        <div class="section-head">Search &amp; Filter Officers</div>
+        <div class="p-3">
+            <form method="GET" action="/admin/officers" class="row g-2 align-items-end">
+                <div class="col-md-5">
+                    <input type="text" name="q" class="form-control" placeholder="Search username or name..." value="{{ q }}">
+                </div>
+                <div class="col-md-2">
+                    <select name="role" class="form-select">
+                        <option value="">All roles</option>
+                        <option value="admin"   {% if role_f=='admin'   %}selected{% endif %}>Admin</option>
+                        <option value="officer" {% if role_f=='officer' %}selected{% endif %}>Officer</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select name="status" class="form-select">
+                        <option value="">All statuses</option>
+                        <option value="active"   {% if status_f=='active'   %}selected{% endif %}>Active</option>
+                        <option value="inactive" {% if status_f=='inactive' %}selected{% endif %}>Inactive</option>
+                        <option value="locked"   {% if status_f=='locked'   %}selected{% endif %}>Locked</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn-navy w-100">Filter</button>
+                </div>
+                <div class="col-md-1">
+                    <a href="/admin/officers" class="btn btn-outline-secondary w-100" style="border-radius:.6rem;font-size:.88rem;">Clear</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Officers table -->
+    <div class="portal-card">
+        <div class="section-head d-flex justify-content-between align-items-center">
+            <span>Accounts ({{ officers | length }})</span>
+            <a href="/admin/login-history" class="btn btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:.5rem;font-size:.8rem;">Login History</a>
+        </div>
+        <div class="p-0">
+            {% if officers %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" style="font-size:.88rem;">
+                    <thead style="background:#f4f7fb;">
+                        <tr>
+                            <th class="ps-3">Username</th>
+                            <th>Full Name</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Last Login</th>
+                            <th>Created</th>
+                            <th class="text-end pe-3">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for o in officers %}
+                        <tr class="officer-row">
+                            <td class="ps-3" style="font-weight:600;">{{ o.username }}</td>
+                            <td>{{ o.full_name }}</td>
+                            <td>
+                                <span class="badge-{{ o.role }}">{{ o.role | capitalize }}</span>
+                            </td>
+                            <td>
+                                {% if o.account_locked %}
+                                    <span class="badge-locked">Locked</span>
+                                {% elif o.is_active %}
+                                    <span class="badge-active">Active</span>
+                                {% else %}
+                                    <span class="badge-inactive">Disabled</span>
+                                {% endif %}
+                            </td>
+                            <td style="color:#666;">
+                                {% if o.last_login %}{{ o.last_login.strftime('%d %b %Y %H:%M') }}{% else %}—{% endif %}
+                            </td>
+                            <td style="color:#666;">{{ o.created_at.strftime('%d %b %Y') }}</td>
+                            <td class="text-end pe-3">
+                                <div class="d-flex gap-1 justify-content-end flex-wrap">
+                                    <a href="/admin/officers/{{ o.id }}/activity"
+                                       class="btn-sm-act" style="background:#e8f5ee;color:#1f7a3f;text-decoration:none;">
+                                        Activity
+                                    </a>
+                                    <button class="btn-sm-act" style="background:#e8f0fa;color:#062952;"
+                                            onclick="openEditModal('{{ o.id }}','{{ o.full_name | replace("'","\\x27") }}','{{ o.username }}','{{ o.role }}')">
+                                        Edit
+                                    </button>
+                                    <button class="btn-sm-act" style="background:#fff3cd;color:#856404;"
+                                            onclick="openResetModal('{{ o.id }}','{{ o.username }}')">
+                                        Reset PW
+                                    </button>
+                                    {% if o.account_locked %}
+                                    <form method="POST" action="/admin/officers/{{ o.id }}/unlock" class="d-inline">
+                                        <button type="submit" class="btn-sm-act" style="background:#e6f9ed;color:#1f7a3f;">Unlock</button>
+                                    </form>
+                                    {% endif %}
+                                    <form method="POST" action="/admin/officers/{{ o.id }}/toggle-active" class="d-inline">
+                                        {% if o.is_active %}
+                                            <button type="submit" class="btn-sm-act" style="background:#fce8e8;color:#9c1f1f;"
+                                                    onclick="return confirm('Disable account {{ o.username }}?')">Disable</button>
+                                        {% else %}
+                                            <button type="submit" class="btn-sm-act" style="background:#e6f9ed;color:#1f7a3f;">Enable</button>
+                                        {% endif %}
+                                    </form>
+                                    <form method="POST" action="/admin/officers/{{ o.id }}/delete" class="d-inline">
+                                        <button type="submit" class="btn-sm-act" style="background:#fce8e8;color:#9c1f1f;"
+                                                onclick="return confirm('Permanently delete {{ o.username }}? This cannot be undone.')">Delete</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+                <p class="text-muted p-3 mb-0">No accounts match your filters.</p>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+
+<!-- Edit Officer Modal -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Officer Account</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editForm" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Full Name</label>
+                        <input type="text" name="full_name" id="editFullName" class="form-control" maxlength="100" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Username</label>
+                        <input type="text" name="username" id="editUsername" class="form-control"
+                               maxlength="30" pattern="[a-zA-Z0-9_.]{1,30}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Role</label>
+                        <select name="role" id="editRole" class="form-select">
+                            <option value="officer">Officer</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn-navy">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Reset Password Modal -->
+<div class="modal fade" id="resetModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Reset Password — <span id="resetUsername"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="resetForm" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">New Password</label>
+                        <div class="input-group">
+                            <input type="password" name="new_password" id="resetPw1" class="form-control" placeholder="New password" required>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="togglePw('resetPw1')" tabindex="-1" style="border-color:#9eb3d2;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/><path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mb-1">
+                        <label class="form-label">Confirm Password</label>
+                        <input type="password" name="confirm_password" id="resetPw2" class="form-control" placeholder="Confirm" required>
+                    </div>
+                    <div class="form-text mt-1" style="font-size:.76rem;">8+ chars, uppercase, number, special character. Also clears any account lock.</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn-navy">Reset Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function togglePw(id) {
+    var el = document.getElementById(id);
+    el.type = el.type === 'password' ? 'text' : 'password';
+}
+function openEditModal(officerId, fullName, username, role) {
+    document.getElementById('editFullName').value = fullName;
+    document.getElementById('editUsername').value = username;
+    document.getElementById('editRole').value     = role;
+    document.getElementById('editForm').action    = '/admin/officers/' + officerId + '/edit';
+    new bootstrap.Modal(document.getElementById('editModal')).show();
+}
+function openResetModal(officerId, username) {
+    document.getElementById('resetUsername').textContent = username;
+    document.getElementById('resetForm').action          = '/admin/officers/' + officerId + '/reset-password';
+    document.getElementById('resetPw1').value = '';
+    document.getElementById('resetPw2').value = '';
+    new bootstrap.Modal(document.getElementById('resetModal')).show();
+}
+</script>
+{% endblock %}

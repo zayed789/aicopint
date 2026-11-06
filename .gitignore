@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+holehe.egg-info
+build/
+dist/
+.python-version
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Secrets - never commit
+.env
+.env.*
+!.env.example
+
+# Runtime data / logs (may contain personal or operational data)
+audit_logs/
+**/audit_logs/
+*.jsonl
+data/police_users.json
+**/data/police_users.json
+*.db
+*.sqlite3
+*.log
+
+# Uploads and generated reports
+uploads/
+**/uploads/
+reports/*
+!reports/.gitkeep
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Misc
+test.py
+test_module.py
+todolist

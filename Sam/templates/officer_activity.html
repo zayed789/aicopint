@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+{% block title %}Activity — {{ officer.username }} — Admin{% endblock %}
+
+{% block extra_css %}
+.admin-hero { background:linear-gradient(120deg,#041d39,#062952); border-radius:14px; padding:1.4rem 1.8rem; color:#fff; margin-bottom:1.5rem; }
+.admin-hero h2 { font-size:1.2rem; font-weight:700; margin:0 0 .25rem; }
+.admin-hero p  { font-size:.84rem; color:#b8cef0; margin:0; }
+.stat-card { background:#fff; border:1px solid #dce6f5; border-radius:10px; padding:1rem 1.2rem; text-align:center; }
+.stat-num  { font-size:1.8rem; font-weight:800; color:#062952; line-height:1; }
+.stat-lbl  { font-size:.75rem; color:#8899b0; font-weight:600; text-transform:uppercase; letter-spacing:.05em; margin-top:.2rem; }
+.portal-card { background:#fff; border:1px solid #dce6f5; border-radius:14px; box-shadow:0 4px 20px rgba(6,41,82,0.06); margin-bottom:1.25rem; overflow:hidden; }
+.section-head { background:linear-gradient(90deg,#062952,#0c3f7b); color:#fff; padding:.7rem 1.2rem; font-weight:600; font-size:.9rem; }
+.form-control,.form-select {
+    border:1.5px solid #c8d8ee; border-radius:.55rem;
+    height:40px; font-size:.88rem; padding:0 .85rem;
+    background:#fff; color:#1a1f2b;
+    transition:border-color .15s, box-shadow .15s;
+}
+.form-control:focus,.form-select:focus { border-color:#2f67b1; box-shadow:0 0 0 3px rgba(47,103,177,.12); outline:none; }
+.form-control::placeholder { color:#b0bac8; }
+.btn-navy {
+    background:#062952; color:#fff; border:0;
+    border-radius:.55rem; height:40px; padding:0 1.2rem;
+    font-weight:700; font-size:.88rem; letter-spacing:.02em;
+    transition:background .15s; white-space:nowrap;
+}
+.btn-navy:hover { background:#0f4687; color:#fff; }
+.badge-admin    { background:#fef3cd; color:#856404; border:1px solid #fde68a; border-radius:999px; padding:.18rem .55rem; font-size:.72rem; font-weight:700; }
+.badge-officer  { background:#e8f4fd; color:#0d5c99; border:1px solid #bee5fb; border-radius:999px; padding:.18rem .55rem; font-size:.72rem; font-weight:700; }
+.status-success { color:#1f7a3f; font-weight:700; }
+.status-failed  { color:#9c1f1f; font-weight:700; }
+.tool-chip {
+    display:inline-block; padding:.15rem .5rem;
+    border-radius:6px; font-size:.74rem; font-weight:700;
+    background:#edf3fd; color:#062952; border:1px solid #c0d4ef;
+}
+.target-cell { max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.filter-bar { padding:1rem 1.2rem; background:#f8fafd; border-bottom:1px solid #e4eaf5; }
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 px-4">
+
+    <!-- Back + breadcrumb -->
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <a href="/admin/officers" class="btn btn-outline-secondary btn-sm" style="border-radius:.6rem;">&larr; Back to Officers</a>
+        <h4 class="mb-0" style="color:#062952;font-weight:700;">Investigation Activity</h4>
+        <span class="text-muted" style="font-size:.84rem;">/ {{ officer.username }}</span>
+    </div>
+
+    <!-- Hero -->
+    <div class="admin-hero">
+        <h2>{{ officer.full_name }}</h2>
+        <p>
+            <span class="me-3">@{{ officer.username }}</span>
+            <span class="badge-{{ officer.role }}">{{ officer.role | capitalize }}</span>
+            <span class="ms-3" style="color:#b8cef0;">
+                {% if officer.is_active %}&#x2714; Active{% else %}&#x2718; Disabled{% endif %}
+            </span>
+        </p>
+    </div>
+
+    <!-- Summary stats -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="stat-card">
+                <div class="stat-num">{{ total_searches }}</div>
+                <div class="stat-lbl">Total Searches</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card">
+                <div class="stat-num" style="font-size:1.1rem;padding-top:.3rem;">{{ most_used_tool }}</div>
+                <div class="stat-lbl">Most Used Tool</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card">
+                <div class="stat-num" style="color:#9c1f1f;">{{ failed_count }}</div>
+                <div class="stat-lbl">Failed Actions</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card">
+                <div class="stat-num" style="font-size:.95rem;padding-top:.4rem;">
+                    {% if last_active %}{{ last_active.strftime('%d %b %Y') }}{% else %}—{% endif %}
+                </div>
+                <div class="stat-lbl">Last Active</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="portal-card mb-3">
+        <div class="section-head">Filter Activity</div>
+        <div class="filter-bar">
+            <form method="GET" class="row g-2 align-items-end">
+                <!-- Search -->
+                <div class="col-md-3">
+                    <label class="form-label" style="font-size:.78rem;font-weight:700;color:#062952;text-transform:uppercase;letter-spacing:.04em;">Search Target</label>
+                    <input type="text" name="q" class="form-control" placeholder="e.g. john@gmail.com" value="{{ search_f }}">
+                </div>
+                <!-- Tool -->
+                <div class="col-md-2">
+                    <label class="form-label" style="font-size:.78rem;font-weight:700;color:#062952;text-transform:uppercase;letter-spacing:.04em;">Tool</label>
+                    <select name="tool" class="form-select">
+                        <option value="">All tools</option>
+                        {% for t in tool_names %}
+                        <option value="{{ t }}" {% if tool_f == t %}selected{% endif %}>
+                            {{ tool_labels.get(t, t) }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <!-- Status -->
+                <div class="col-md-2">
+                    <label class="form-label" style="font-size:.78rem;font-weight:700;color:#062952;text-transform:uppercase;letter-spacing:.04em;">Status</label>
+                    <select name="status" class="form-select">
+                        <option value="">All</option>
+                        <option value="success" {% if status_f == 'success' %}selected{% endif %}>Success</option>
+                        <option value="failed"  {% if status_f == 'failed'  %}selected{% endif %}>Failed</option>
+                    </select>
+                </div>
+                <!-- Date from -->
+                <div class="col-md-2">
+                    <label class="form-label" style="font-size:.78rem;font-weight:700;color:#062952;text-transform:uppercase;letter-spacing:.04em;">From</label>
+                    <input type="date" name="date_from" class="form-control" value="{{ date_from_s }}">
+                </div>
+                <!-- Date to -->
+                <div class="col-md-2">
+                    <label class="form-label" style="font-size:.78rem;font-weight:700;color:#062952;text-transform:uppercase;letter-spacing:.04em;">To</label>
+                    <input type="date" name="date_to" class="form-control" value="{{ date_to_s }}">
+                </div>
+                <!-- Buttons -->
+                <div class="col-md-1 d-flex gap-1">
+                    <button type="submit" class="btn-navy">Filter</button>
+                </div>
+            </form>
+            {% if tool_f or status_f or search_f or date_from_s or date_to_s %}
+            <div class="mt-2">
+                <a href="/admin/officers/{{ officer.id }}/activity"
+                   class="btn btn-outline-secondary btn-sm" style="border-radius:.5rem;font-size:.8rem;">
+                    Clear Filters
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Activity table -->
+    <div class="portal-card">
+        <div class="section-head d-flex justify-content-between align-items-center">
+            <span>Activity Log ({{ logs | length }} shown, max {{ 200 }})</span>
+            {% if logs %}
+            <span style="font-size:.78rem;opacity:.8;">Newest first &bull; UTC timestamps</span>
+            {% endif %}
+        </div>
+
+        {% if logs %}
+        <div class="table-responsive">
+            <table class="table table-hover table-sm mb-0" style="font-size:.85rem;">
+                <thead style="background:#f4f7fb;">
+                    <tr>
+                        <th class="ps-3" style="width:155px;">Time (UTC)</th>
+                        <th style="width:130px;">Tool</th>
+                        <th style="width:110px;">Action</th>
+                        <th>Target</th>
+                        <th style="width:80px;">Status</th>
+                        <th style="width:120px;">IP Address</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td class="ps-3" style="color:#555;white-space:nowrap;font-size:.82rem;">
+                        {{ log.timestamp.strftime('%d %b %Y %H:%M') if log.timestamp else '—' }}
+                    </td>
+                    <td>
+                        <span class="tool-chip">
+                            {{ tool_labels.get(log.tool_name, log.tool_name) }}
+                        </span>
+                    </td>
+                    <td style="color:#444;text-transform:capitalize;">
+                        {{ log.action_type | replace('_', ' ') }}
+                    </td>
+                    <td>
+                        {% if log.target_input %}
+                        <span class="target-cell d-inline-block" title="{{ log.target_input | e }}">
+                            {{ log.target_input | truncate(60) }}
+                        </span>
+                        {% else %}
+                            <span style="color:#aaa;">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if log.status == 'success' %}
+                            <span class="status-success">&#x2714; Success</span>
+                        {% elif log.status == 'failed' %}
+                            <span class="status-failed">&#x2718; Failed</span>
+                        {% else %}
+                            <span style="color:#666;">{{ log.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="color:#666;font-size:.8rem;">
+                        {{ log.ip_address or '—' }}
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-4 text-center text-muted" style="font-size:.9rem;">
+            {% if tool_f or status_f or search_f or date_from_s or date_to_s %}
+                No activity records match your filters.
+            {% else %}
+                No activity has been recorded for this officer yet.
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

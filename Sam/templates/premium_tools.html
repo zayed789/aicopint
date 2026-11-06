@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+{% block title %}Premium Tools — OSINT Portal{% endblock %}
+
+{% block extra_css %}
+.premium-title-section {
+    display: flex;
+    align-items: center;
+    gap: 1.1rem;
+    padding: 1.1rem 1.4rem;
+    margin-bottom: 1.6rem;
+    background: linear-gradient(120deg, #041d39 0%, #0a3566 55%, #0f4a8a 100%);
+    border-radius: 16px;
+    border-left: 5px solid #f3c14b;
+    box-shadow: 0 6px 24px rgba(6,41,82,.18);
+    position: relative;
+    overflow: hidden;
+    max-width: 680px;
+}
+.premium-title-section::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 200px; height: 100%;
+    background: linear-gradient(120deg, transparent, rgba(243,193,75,.07), transparent);
+    pointer-events: none;
+}
+.premium-title-icon {
+    width: 48px; height: 48px; border-radius: 12px; flex-shrink: 0;
+    background: linear-gradient(135deg, #f3c14b, #e6a817);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 3px 10px rgba(243,193,75,.35);
+    font-size: 1.3rem;
+}
+.premium-title-text h1 {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #fff;
+    margin: 0 0 0.2rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+}
+.premium-badge-hero {
+    display: inline-block;
+    background: #f3c14b;
+    color: #041d39;
+    font-size: 0.67rem;
+    font-weight: 900;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    border-radius: 6px;
+    padding: 0.17rem 0.6rem;
+    vertical-align: middle;
+}
+.premium-title-text p {
+    font-size: 0.82rem;
+    color: #b8cef0;
+    margin: 0;
+    font-weight: 400;
+}
+.tool-premium-card {
+    background: #fff;
+    border: 1px solid #d3deef;
+    border-radius: 14px;
+    box-shadow: 0 8px 20px rgba(6, 41, 82, 0.08);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    transition: box-shadow .18s, transform .18s;
+}
+.tool-premium-card:hover {
+    box-shadow: 0 14px 32px rgba(6, 41, 82, 0.14);
+    transform: translateY(-2px);
+}
+.tool-premium-header {
+    background: linear-gradient(135deg, #062952, #0c3f7b);
+    color: #fff;
+    padding: 1rem 1.1rem 0.85rem;
+}
+.tool-premium-header .tool-name {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 0.35rem;
+    line-height: 1.3;
+}
+.tool-premium-header .tool-category {
+    font-size: 0.75rem;
+    color: #b8cef0;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+}
+.tool-premium-body {
+    padding: 1rem 1.1rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+.tool-description {
+    font-size: 0.88rem;
+    color: #4a5568;
+    line-height: 1.55;
+    flex: 1;
+    margin-bottom: 1rem;
+}
+.tool-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-top: auto;
+}
+.pricing-pill {
+    font-size: 0.78rem;
+    font-weight: 700;
+    border-radius: 999px;
+    padding: 0.22rem 0.75rem;
+    letter-spacing: .02em;
+}
+.pricing-pill.danger  { background: #fde8ea; color: #b91c1c; border: 1px solid #fca5a5; }
+.pricing-pill.warning { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+.pricing-pill.success { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+.btn-open-tool {
+    background: #062952;
+    color: #fff;
+    border: 0;
+    border-radius: 8px;
+    padding: 0.38rem 1rem;
+    font-size: 0.86rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background .15s;
+    white-space: nowrap;
+}
+.btn-open-tool:hover {
+    background: #0f4687;
+    color: #fff;
+}
+.session-bar {
+    background: #edf7ee;
+    border: 1px solid #b7e5c6;
+    border-radius: 10px;
+    padding: 0.6rem 1rem;
+    font-size: 0.87rem;
+    color: #1f7a3f;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+{% endblock %}
+
+{% block content %}
+<div class="container pb-5 pt-4">
+
+    <!-- ── Page title ── -->
+    <div class="premium-title-section">
+        <div class="premium-title-icon">⭐</div>
+        <div class="premium-title-text">
+            <h1>Premium Tools <span class="premium-badge-hero">Premium</span></h1>
+            <p>Premium OSINT &amp; Investigation Tools for Advanced Intelligence Gathering</p>
+        </div>
+    </div>
+
+    <div class="session-bar mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
+        </svg>
+        Premium session active. All tools open in a new tab. Your session is logged for audit compliance.
+    </div>
+
+    <div class="row g-4">
+        {% for tool in tools %}
+        <div class="col-md-4">
+            <div class="tool-premium-card">
+                <div class="tool-premium-header">
+                    <div class="tool-category">{{ tool.category }}</div>
+                    <div class="tool-name">{{ tool.name }}</div>
+                </div>
+                <div class="tool-premium-body">
+                    <p class="tool-description">{{ tool.description }}</p>
+                    <div class="tool-footer">
+                        {% if not tool.get('internal') %}
+                        <span class="pricing-pill {{ tool.pricing_class }}">{{ tool.pricing }}</span>
+                        {% else %}
+                        <span class="pricing-pill success">Built-In</span>
+                        {% endif %}
+                        {% if tool.get('internal') %}
+                        <a href="{{ tool.url }}" class="btn-open-tool">
+                            Open Tool &rarr;
+                        </a>
+                        {% else %}
+                        <a href="{{ tool.url }}" target="_blank" rel="noopener noreferrer" class="btn-open-tool">
+                            Open Tool &rarr;
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="mt-4 text-end">
+        <a href="/" style="font-size:0.85rem;color:#4a6a9e;text-decoration:none;">&larr; Back to Main Dashboard</a>
+    </div>
+
+</div>
+{% endblock %}

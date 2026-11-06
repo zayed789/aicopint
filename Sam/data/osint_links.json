@@ -1,0 +1,98 @@
+[
+  {
+    "title": "DNS identifier",
+    "url": "https://dnsdumpster.com/",
+    "added_by": "admin@tspolice.gov.in",
+    "added_at": "2026-04-17T07:08:47.628345+00:00"
+  },
+  {
+    "title": "Malware Analysis",
+    "url": "https://app.any.run/",
+    "added_by": "admin@tspolice.gov.in",
+    "added_at": "2026-04-17T09:19:31.735954+00:00"
+  },
+  {
+    "title": "Domain Intelligence",
+    "url": "http://dnslytics.com",
+    "added_by": "admin@tspolice.gov.in",
+    "added_at": "2026-04-17T10:04:44.032422+00:00"
+  },
+  {
+    "title": "Image Forensics",
+    "url": "https://fotoforensics.com/",
+    "added_by": "admin@tspolice.gov.in",
+    "added_at": "2026-04-17T11:19:38.688970+00:00"
+  },
+  {
+    "title": "Ship Tracker",
+    "url": "http://marinetraffic.com",
+    "added_by": "admin@tspolice.gov.in",
+    "added_at": "2026-04-20T10:04:28.277987+00:00"
+  },
+  {
+    "title": "Extracting Location from image",
+    "url": "http://pic2map.com",
+    "added_by": "admin@tspolice.gov.in",
+    "added_at": "2026-04-20T10:15:03.610379+00:00"
+  },
+  {
+    "title": "Finding Exposed CCTV devices",
+    "url": "https://www.shodan.io/",
+    "added_by": "admin@tspolice.gov.in",
+    "added_at": "2026-04-20T10:19:36.223658+00:00"
+  },
+  {
+    "title": "Reverse Image Search",
+    "url": "http://tineye.com",
+    "added_by": "admin@tspolice.gov.in",
+    "added_at": "2026-04-20T10:38:36.692841+00:00"
+  },
+  {
+    "title": "Username Search",
+    "url": "https://whatsmyname.app/",
+    "added_by": "admin@tspolice.gov.in",
+    "added_at": "2026-04-20T11:18:11.155281+00:00"
+  },
+  {
+    "title": "Network Information for IP address",
+    "url": "https://who.is/",
+    "added_by": "admin@tspolice.gov.in",
+    "added_at": "2026-04-20T11:46:25.630375+00:00"
+  },
+  {
+    "title": "IP Reputation",
+    "url": "https://www.abuseipdb.com/",
+    "added_by": "admin@tspolice.gov.in",
+    "added_at": "2026-04-27T02:36:48.673390+00:00"
+  },
+  {
+    "title": "IP & Host Intelligence",
+    "url": "https://platform.censys.io/home",
+    "added_by": "admin@tspolice.gov.in",
+    "added_at": "2026-05-02T07:27:23.596511+00:00"
+  },
+  {
+    "title": "Domain Intelligence",
+    "url": "https://whois.domaintools.com/",
+    "added_by": "admin@tspolice.gov.in",
+    "added_at": "2026-05-02T07:31:03.765285+00:00"
+  },
+  {
+    "title": "Facial Recognition Intelligence",
+    "url": "https://facecheck.id/",
+    "added_by": "admin@tspolice.gov.in",
+    "added_at": "2026-05-02T07:34:10.194789+00:00"
+  },
+  {
+    "title": "OSINT.ROCKS",
+    "url": "https://osint.rocks/",
+    "added_by": "admin@tspolice.gov.in",
+    "added_at": "2026-05-02T09:02:49.607616+00:00"
+  },
+  {
+    "title": "GSTIN & Business Details Finder",
+    "url": "https://services.gst.gov.in/services/searchtp",
+    "added_by": "admin@tspolice.gov.in",
+    "added_at": "2026-05-04T05:28:24.364569+00:00"
+  }
+]

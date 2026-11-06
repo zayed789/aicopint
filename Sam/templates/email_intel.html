@@ -1,0 +1,764 @@
+{% extends "base.html" %}
+{% block title %}Email Intelligence — OSINT Portal{% endblock %}
+
+{% block extra_css %}
+.page-wrap { padding: 2rem 2.5rem 3rem; min-height: 100vh; }
+.content-wrap { max-width: 1248px; margin: 0 auto; }
+.page-header { margin-bottom: 1.75rem; }
+.page-header h1 { font-size: 1.35rem; font-weight: 800; color: var(--navy); margin: 0 0 0.2rem; letter-spacing: -0.01em; }
+.page-header p  { font-size: 0.86rem; color: #6b7a99; margin: 0; }
+
+.scan-card {
+    background: #fff;
+    border: 1px solid #dce6f5;
+    border-radius: 14px;
+    box-shadow: 0 2px 12px rgba(6,41,82,0.07);
+    margin-bottom: 1.25rem;
+    overflow: hidden;
+}
+.scan-card-head {
+    background: linear-gradient(135deg, var(--navy) 0%, #0c3f7b 100%);
+    color: #fff;
+    padding: 0.9rem 1.4rem;
+    display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
+}
+.scan-card-title { font-size: 0.95rem; font-weight: 700; margin: 0; }
+.scan-card-body  { padding: 1.25rem 1.5rem; }
+
+/* Search bar */
+.search-bar {
+    display: flex; gap: 0.6rem; margin-bottom: 0.9rem;
+}
+.search-input {
+    flex: 1;
+    border: 1.5px solid #c8d8ef; border-radius: 8px;
+    padding: 0.55rem 0.85rem; font-size: 0.9rem;
+    background: #f8fafd; color: #1a1f2b; outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+.search-input:focus { border-color: var(--navy); background: #fff; box-shadow: 0 0 0 3px rgba(6,41,82,0.1); }
+.search-btn {
+    padding: 0.55rem 1.2rem;
+    background: var(--navy); color: #fff;
+    border: none; border-radius: 8px;
+    font-size: 0.88rem; font-weight: 700; cursor: pointer;
+    transition: background 0.15s;
+}
+.search-btn:hover { background: #0f4687; }
+
+/* Tool chips */
+.tool-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.75rem; }
+.tool-chip {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    padding: 0.28rem 0.7rem;
+    border: 1.5px solid #c8d8ef; border-radius: 999px;
+    font-size: 0.75rem; font-weight: 600; color: #2d4f8a;
+    background: #edf3ff; cursor: pointer;
+    transition: background 0.14s, border-color 0.14s, color 0.14s;
+    user-select: none;
+}
+.tool-chip.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+.tool-chip input { display: none; }
+
+/* Result sections */
+.result-section { margin-bottom: 1.35rem; }
+.rs-head {
+    background: linear-gradient(135deg, var(--navy) 0%, #0c3f7b 100%);
+    color: #fff; padding: 0.8rem 1.4rem;
+    border-radius: 10px 10px 0 0;
+    display: flex; align-items: center; justify-content: space-between; gap: 0.6rem;
+}
+.rs-head-alt { background: linear-gradient(135deg, #0d4f93 0%, #1a6ab3 100%); }
+.rs-title { font-size: 0.88rem; font-weight: 700; margin: 0; }
+.rs-body { background: #fff; border: 1px solid #dce6f5; border-top: none; border-radius: 0 0 10px 10px; }
+.rs-inner { padding: 1rem 1.4rem; }
+
+/* Fast results row */
+.fast-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.1rem; margin-bottom: 1.35rem; }
+@media (max-width: 1050px) { .fast-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 640px)  { .fast-grid { grid-template-columns: 1fr; } }
+.fast-card { background: #fff; border: 1px solid #dce6f5; border-radius: 10px; overflow: hidden; }
+.fast-card-head { background: linear-gradient(135deg, var(--navy) 0%, #0c3f7b 100%); color: #fff; padding: 0.7rem 1.1rem; font-size: 0.82rem; font-weight: 700; }
+.fast-card-body { padding: 0.9rem 1.1rem; min-height: 60px; }
+
+/* ── BehindTheEmail rendering engine ── */
+.bte-section { margin-bottom: 2rem; }
+.bte-section-head { display:flex; align-items:center; gap:0.6rem; margin-bottom:0.9rem; padding-bottom:0.5rem; border-bottom:2.5px solid #e0eaf8; }
+.bte-section-icon { width:34px; height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 2px 6px rgba(0,0,0,0.15); }
+.bte-section-icon i { color:#fff; font-size:0.95rem; }
+.bte-section-label { font-size:0.8rem; font-weight:900; color:#1a2b4a; text-transform:uppercase; letter-spacing:0.08em; }
+
+/* Platform card */
+.bte-platform-card { background:#fff; border:1px solid #d5e3f5; border-radius:14px; overflow:hidden; margin-bottom:1rem; box-shadow:0 2px 12px rgba(6,41,82,0.08); transition:box-shadow 0.2s; }
+.bte-platform-card:hover { box-shadow:0 4px 20px rgba(6,41,82,0.13); }
+
+/* Profile hero header — large avatar + name + headline */
+.bte-platform-hero { display:flex; align-items:flex-start; gap:1.1rem; padding:1.1rem 1.4rem; background:linear-gradient(135deg,#f0f5ff 0%,#e8f0fb 100%); border-bottom:1px solid #d5e3f5; }
+.bte-platform-avatar { width:72px; height:72px; border-radius:14px; object-fit:cover; border:3px solid #fff; box-shadow:0 2px 10px rgba(6,41,82,0.18); flex-shrink:0; }
+.bte-platform-icon-lg { width:60px; height:60px; border-radius:14px; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 2px 10px rgba(0,0,0,0.18); }
+.bte-platform-icon-lg i { color:#fff; font-size:1.6rem; }
+.bte-hero-info { flex:1; min-width:0; }
+.bte-hero-name { font-size:1.05rem; font-weight:800; color:#0d1f3c; margin-bottom:0.15rem; line-height:1.3; }
+.bte-hero-sub  { font-size:0.82rem; color:#4a6080; line-height:1.45; margin-bottom:0.4rem; }
+.bte-hero-badge { display:inline-flex; align-items:center; gap:0.3rem; font-size:0.72rem; font-weight:700; color:#fff; background:#062952; border-radius:6px; padding:0.25rem 0.75rem; margin-right:0.4rem; margin-bottom:0.25rem; text-decoration:none; white-space:nowrap; }
+.bte-hero-badge:hover { background:#0f4687; color:#fff; }
+.bte-hero-badge.green  { background:#0d6e4f; }
+.bte-hero-badge.purple { background:#5a2da0; }
+.bte-hero-badge.red    { background:#b91c1c; }
+
+/* Card body with 2-col data grid */
+.bte-platform-body { padding:1rem 1.4rem; }
+.bte-data-grid { display:grid; grid-template-columns:1fr 1fr; gap:0.55rem 1.5rem; }
+@media (max-width:720px) { .bte-data-grid { grid-template-columns:1fr; } }
+
+/* Key-value rows */
+.bte-kv { display:flex; flex-direction:column; gap:0; }
+.bte-kv-row { display:flex; gap:0.75rem; align-items:flex-start; padding:0.4rem 0; border-bottom:1px solid #f0f5fb; }
+.bte-kv-row:last-child { border-bottom:none; }
+.bte-kv-key { font-size:0.69rem; font-weight:800; color:#7a93b8; min-width:115px; flex-shrink:0; padding-top:0.22rem; text-transform:uppercase; letter-spacing:0.04em; }
+.bte-kv-val { flex:1; min-width:0; }
+.bte-kv-nested { background:#f4f8ff; border:1px solid #dce8f8; border-radius:10px; padding:0.7rem 1rem; margin-top:0.3rem; }
+
+/* Nested list items */
+.bte-list { display:flex; flex-direction:column; gap:0.6rem; margin-top:0.3rem; }
+.bte-list-item { background:#f6f9ff; border:1px solid #d8e6f5; border-radius:10px; padding:0.65rem 0.9rem; }
+
+/* Images — large and prominent */
+.bte-thumb { width:100%; max-width:160px; height:130px; object-fit:cover; border-radius:10px; border:2px solid #dce6f5; display:block; box-shadow:0 2px 8px rgba(6,41,82,0.12); margin-bottom:0.4rem; }
+.bte-thumb-sm { width:56px; height:56px; object-fit:cover; border-radius:10px; border:2px solid #dce6f5; display:inline-block; box-shadow:0 1px 5px rgba(6,41,82,0.1); }
+
+/* Inline value atoms */
+.bte-text  { font-size:0.87rem; color:#1a2b4a; font-weight:500; line-height:1.55; }
+.bte-num   { font-size:0.9rem; color:#062952; font-weight:800; }
+.bte-date  { font-size:0.82rem; color:#1a5aa0; font-weight:700; background:#eaf2ff; border-radius:5px; padding:0.1rem 0.45rem; display:inline-block; }
+.bte-bool-yes { font-size:0.73rem; font-weight:700; color:#fff; background:#dc3545; border-radius:5px; padding:0.14rem 0.5rem; display:inline-block; }
+.bte-bool-no  { font-size:0.73rem; font-weight:700; color:#fff; background:#198754; border-radius:5px; padding:0.14rem 0.5rem; display:inline-block; }
+.bte-link  { font-size:0.84rem; color:#1a5aa0; word-break:break-all; text-decoration:none; font-weight:500; }
+.bte-link:hover { text-decoration:underline; color:#0d4080; }
+.bte-chips { display:flex; flex-wrap:wrap; gap:0.4rem; }
+.bte-chip  { display:inline-block; background:#e3ecff; color:#1b4f72; border-radius:6px; padding:0.18rem 0.6rem; font-size:0.76rem; font-weight:700; border:1px solid #c5d9f5; }
+.bte-expand-btn { background:none; border:none; color:#1a5aa0; font-size:0.78rem; font-weight:700; cursor:pointer; padding:0 0.25rem; text-decoration:underline; }
+.bte-stars { color:#f59e0b; font-size:0.9rem; letter-spacing:0.05em; }
+
+{% endblock %}
+
+{% block content %}
+<div class="page-wrap">
+<div class="content-wrap">
+
+    <div class="page-header">
+        <h1><i class="bi bi-envelope-fill me-2" style="color:var(--khaki);"></i>Email Intelligence</h1>
+        <p>Holehe email footprint · User-Scanner · Disposable risk · Breach &amp; Intel pivots</p>
+    </div>
+
+    <!-- Search card -->
+    <div class="scan-card">
+        <div class="scan-card-head">
+            <span class="scan-card-title"><i class="bi bi-search me-2"></i>Target Email</span>
+        </div>
+        <div class="scan-card-body">
+            <form id="email-form" action="/email-intel" method="GET">
+                <div class="search-bar">
+                    <input class="search-input" type="email" name="email" id="email-input"
+                           placeholder="target@example.com" value="{{ email or '' }}" autocomplete="off">
+                    <button class="search-btn" type="submit"><i class="bi bi-play-fill"></i> Run Scan</button>
+                </div>
+
+                <!-- Tool selector chips -->
+                <div class="tool-chips" id="tool-chips">
+                    {% set tools = [
+                        ('holehe',          'Holehe Footprint',        'bi-envelope-check'),
+                        ('user_scanner',    'User-Scanner (195+)',      'bi-broadcast'),
+                        ('disposable',      'Disposable Risk',          'bi-shield-exclamation'),
+                        ('emailpivots',     'Breach Pivots',            'bi-link-45deg'),
+                        ('behindtheemail',  'BehindTheEmail Intel',     'bi-person-badge'),
+                    ] %}
+                    {% for tid, tlabel, ticon in tools %}
+                    <label class="tool-chip {% if not selected_tools or tid in selected_tools %}active{% endif %}">
+                        <input type="checkbox" name="tools" value="{{ tid }}"
+                               {% if not selected_tools or tid in selected_tools %}checked{% endif %}>
+                        <i class="bi {{ ticon }}"></i> {{ tlabel }}
+                    </label>
+                    {% endfor %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if email %}
+
+    <!-- Fast results row: Disposable + Pivots -->
+    {% if not selected_tools or 'disposable' in selected_tools or 'emailpivots' in selected_tools %}
+    <div class="fast-grid">
+        {% if not selected_tools or 'disposable' in selected_tools %}
+        <div class="fast-card" id="disposable-card">
+            <div class="fast-card-head"><i class="bi bi-shield-exclamation me-1"></i>Disposable Email Risk</div>
+            <div class="fast-card-body" id="disposable-body">
+                <small class="text-muted"><span class="spinner-border spinner-border-sm me-1"></span>Checking…</small>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if not selected_tools or 'emailpivots' in selected_tools %}
+        <div class="fast-card" id="pivots-card" style="grid-column: span 2;">
+            <div class="fast-card-head"><i class="bi bi-link-45deg me-1"></i>Breach &amp; Intel Pivots</div>
+            <div class="fast-card-body" id="pivots-body">
+                <small class="text-muted"><span class="spinner-border spinner-border-sm me-1"></span>Loading pivots…</small>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Holehe SSE -->
+    {% if not selected_tools or 'holehe' in selected_tools %}
+    <div class="result-section" id="holehe-section">
+        <div class="rs-head">
+            <span class="rs-title"><i class="bi bi-envelope-check me-2"></i>Holehe Email Footprint — {{ email }}</span>
+            <div class="d-flex gap-2 align-items-center">
+                <span class="badge bg-primary" id="holehe-status">Scanning…</span>
+                <span class="badge bg-success" id="holehe-count">0 found</span>
+            </div>
+        </div>
+        <div class="rs-body">
+            <div id="holehe-scanning" class="rs-inner">
+                <small class="text-muted"><span class="spinner-border spinner-border-sm me-1"></span>Running 123 module checks…</small>
+            </div>
+            <div class="table-responsive" id="holehe-table-wrap" style="display:none;">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light"><tr><th style="width:60%">Site</th><th style="width:40%">Status</th></tr></thead>
+                    <tbody id="holehe-tbody"></tbody>
+                </table>
+            </div>
+            <div id="holehe-empty" class="rs-inner" style="display:none;">
+                <div class="alert alert-info mb-0">No public registrations found for this email address.</div>
+            </div>
+            <div id="holehe-error" class="rs-inner" style="display:none;">
+                <div class="alert alert-danger mb-0" id="holehe-error-msg"></div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- User-Scanner SSE -->
+    {% if not selected_tools or 'user_scanner' in selected_tools %}
+    <div class="result-section" id="uscan-section">
+        <div class="rs-head rs-head-alt">
+            <span class="rs-title"><i class="bi bi-broadcast me-2"></i>User-Scanner Live Results — {{ email }}</span>
+            <div class="d-flex gap-2 align-items-center">
+                <span class="badge bg-primary" id="uscan-status">Scanning…</span>
+                <span class="badge bg-success" id="uscan-found">0 found</span>
+                <span class="badge bg-secondary" id="uscan-checked">0 checked</span>
+            </div>
+        </div>
+        <div class="rs-body">
+            <div class="rs-inner pb-0">
+                <div class="progress mb-3" style="height:7px;">
+                    <div id="uscan-progress" class="progress-bar progress-bar-striped progress-bar-animated" style="width:0%"></div>
+                </div>
+            </div>
+            <div id="uscan-results" style="padding:0 1rem 1rem; max-height:600px; overflow-y:auto;"></div>
+            <div id="uscan-summary" class="rs-inner" style="display:none;">
+                <div class="alert alert-success mb-0">
+                    <strong>Scan complete!</strong> Found <span id="uscan-final-found">0</span> platforms in <span id="uscan-final-time">0</span>s
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- BehindTheEmail Intelligence -->
+    {% if not selected_tools or 'behindtheemail' in selected_tools %}
+    <div class="result-section" id="bte-section">
+        <div class="rs-head" style="background:linear-gradient(135deg,#1b4f72 0%,#2874a6 100%);">
+            <span class="rs-title"><i class="bi bi-person-badge me-2"></i>BehindTheEmail Intelligence — {{ email }}</span>
+            <span class="badge bg-primary" id="bte-status">Scanning…</span>
+        </div>
+        <div class="rs-body">
+            <div id="bte-loading" class="rs-inner">
+                <small class="text-muted"><span class="spinner-border spinner-border-sm me-1"></span>Querying BehindTheEmail API…</small>
+            </div>
+            <div id="bte-result" class="rs-inner" style="display:none;"></div>
+            <div id="bte-empty" class="rs-inner" style="display:none;">
+                <div class="alert alert-info mb-0">No profile data found for this email address.</div>
+            </div>
+            <div id="bte-error" class="rs-inner" style="display:none;">
+                <div class="alert alert-warning mb-0" id="bte-error-msg"></div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Download PDF bar -->
+    <div style="display:flex;justify-content:flex-end;margin-bottom:1.5rem;">
+        <button id="ei-dl-btn" onclick="downloadIntelPdf()"
+                style="display:inline-flex;align-items:center;gap:.45rem;padding:.6rem 1.4rem;background:var(--navy);color:#fff;border:none;border-radius:8px;font-size:.88rem;font-weight:700;cursor:pointer;transition:background .15s;">
+            <i class="bi bi-file-earmark-pdf-fill"></i> Download PDF Report
+        </button>
+    </div>
+
+    {% endif %}{# end if email #}
+
+</div>{# /content-wrap #}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    /* ── Tool chip toggle ──────────────────────────────── */
+    document.querySelectorAll('.tool-chip').forEach(chip => {
+        chip.addEventListener('click', function() {
+            const cb = this.querySelector('input');
+            cb.checked = !cb.checked;
+            this.classList.toggle('active', cb.checked);
+        });
+    });
+
+    /* ── PDF data accumulator ──────────────────────────── */
+    const _pdfData = {
+        email: {{ (email | tojson) if email else 'null' }},
+        username: null, phone: null, selected_tools: [],
+        holehe: [], sherlock_profiles: [], maigret_profiles: [], userdeep_profiles: [],
+        user_scanner_email: [], user_scanner_username: [],
+        disposable_result: null, email_pivots_result: null, phone_result: null,
+        behindtheemail_result: null
+    };
+
+    function downloadIntelPdf() {
+        const btn = document.getElementById('ei-dl-btn');
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Generating…';
+        btn.disabled = true;
+        fetch('/api/export/dashboard-pdf', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(_pdfData)
+        })
+        .then(r => { if (!r.ok) throw new Error('Failed'); return r.blob(); })
+        .then(blob => {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = `email_intel_${Date.now()}.pdf`;
+            document.body.appendChild(a); a.click();
+            document.body.removeChild(a); URL.revokeObjectURL(url);
+            btn.innerHTML = orig; btn.disabled = false;
+        })
+        .catch(err => { alert('PDF download failed: ' + err.message); btn.innerHTML = orig; btn.disabled = false; });
+    }
+
+    /* ── Boot scans on page load ────────────────────────── */
+    document.addEventListener('DOMContentLoaded', function() {
+        const emailVal = {{ (email | tojson) if email else 'null' }};
+        const sel = {{ selected_tools | tojson }};
+        const allTools = !sel || sel.length === 0;
+        if (!emailVal) return;
+        _pdfData.selected_tools = sel.length ? sel : ['holehe','user_scanner','disposable','emailpivots','behindtheemail'];
+
+        if (allTools || sel.includes('holehe'))          startHoleheScan(emailVal);
+        if (allTools || sel.includes('disposable'))      loadDisposable(emailVal);
+        if (allTools || sel.includes('emailpivots'))     loadPivots(emailVal);
+        if (allTools || sel.includes('user_scanner'))    startUserScannerScan(emailVal);
+        if (allTools || sel.includes('behindtheemail'))  loadBehindTheEmail(emailVal);
+    });
+
+    /* ── Holehe SSE ─────────────────────────────────────── */
+    function startHoleheScan(email) {
+        const statusBadge = document.getElementById('holehe-status');
+        const countBadge  = document.getElementById('holehe-count');
+        let found = 0;
+        const es = new EventSource(`/api/stream/holehe?email=${encodeURIComponent(email)}`);
+        es.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            if (data.type === 'result') {
+                found++;
+                countBadge.textContent = `${found} found`;
+                const wrap = document.getElementById('holehe-table-wrap');
+                if (wrap.style.display === 'none') {
+                    document.getElementById('holehe-scanning').style.display = 'none';
+                    wrap.style.display = '';
+                }
+                const r = data.data;
+                _pdfData.holehe.push(r);
+                const row = document.createElement('tr');
+                row.style.opacity = '0';
+                row.innerHTML = `<td class="fw-semibold">${r.domain}</td><td><span class="badge bg-success">✓ Registered</span></td>`;
+                document.getElementById('holehe-tbody').appendChild(row);
+                setTimeout(() => row.style.opacity = '1', 50);
+            } else if (data.type === 'complete') {
+                statusBadge.textContent = 'Complete'; statusBadge.className = 'badge bg-success';
+                if (found === 0) { document.getElementById('holehe-scanning').style.display = 'none'; document.getElementById('holehe-empty').style.display = ''; }
+                es.close();
+            } else if (data.type === 'error') {
+                statusBadge.textContent = 'Error'; statusBadge.className = 'badge bg-danger';
+                document.getElementById('holehe-scanning').style.display = 'none';
+                const errEl = document.getElementById('holehe-error');
+                document.getElementById('holehe-error-msg').textContent = data.message || 'Holehe scan failed.';
+                errEl.style.display = '';
+                es.close();
+            }
+        };
+        es.onerror = function() { statusBadge.textContent = 'Error'; statusBadge.className = 'badge bg-danger'; es.close(); };
+    }
+
+    /* ── Disposable AJAX ────────────────────────────────── */
+    function loadDisposable(email) {
+        fetch(`/api/results/disposable?email=${encodeURIComponent(email)}`)
+            .then(r => r.json())
+            .then(d => {
+                _pdfData.disposable_result = d;
+                const body = document.getElementById('disposable-body');
+                if (!body) return;
+                const risk = d.risk_level || 'Unknown';
+                const isDisp = d.is_disposable;
+                const badgeColor = isDisp ? 'danger' : 'success';
+                const riskColor  = risk === 'High' ? 'danger' : risk === 'Low' ? 'success' : 'secondary';
+                body.innerHTML = `
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="badge bg-${badgeColor}">${isDisp ? 'Disposable' : 'Not Disposable'}</span>
+                        <span class="badge bg-${riskColor}">Risk: ${risk}</span>
+                    </div>
+                    <div class="text-muted" style="font-size:0.8rem;">Domain: <strong>${d.domain}</strong></div>
+                `;
+            })
+            .catch(() => {
+                const body = document.getElementById('disposable-body');
+                if (body) body.innerHTML = '<small class="text-danger">Failed to load</small>';
+            });
+    }
+
+    /* ── Email Pivots AJAX ──────────────────────────────── */
+    function loadPivots(email) {
+        fetch(`/api/results/email-pivots?email=${encodeURIComponent(email)}`)
+            .then(r => r.json())
+            .then(d => {
+                _pdfData.email_pivots_result = d;
+                const body = document.getElementById('pivots-body');
+                if (!body) return;
+                const pivots = d.pivots || [];
+                if (!pivots.length) { body.innerHTML = '<small class="text-muted">No pivot links generated.</small>'; return; }
+                const colors = ['#062952','#1a5aa0','#7c3aed','#0d6e4f','#b45309','#c2410c'];
+                body.innerHTML = `<div class="d-flex flex-wrap gap-2">` +
+                    pivots.map((p, i) => `<a href="${p.url}" target="_blank" class="btn btn-sm text-white fw-semibold" style="background:${colors[i % colors.length]};font-size:0.75rem;">${p.name}</a>`).join('') +
+                    `</div>`;
+            })
+            .catch(() => {
+                const body = document.getElementById('pivots-body');
+                if (body) body.innerHTML = '<small class="text-danger">Failed to load</small>';
+            });
+    }
+
+    /* ── User-Scanner SSE ───────────────────────────────── */
+    function startUserScannerScan(email) {
+        const statusBadge  = document.getElementById('uscan-status');
+        const foundBadge   = document.getElementById('uscan-found');
+        const checkedBadge = document.getElementById('uscan-checked');
+        const progressBar  = document.getElementById('uscan-progress');
+        const resultsDiv   = document.getElementById('uscan-results');
+        const summaryDiv   = document.getElementById('uscan-summary');
+        const categories   = {};
+
+        const es = new EventSource(`/api/stream/scan?type=email&query=${encodeURIComponent(email)}`);
+        es.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            if (data.type === 'result') {
+                const result   = data.data;
+                if (result.found) _pdfData.user_scanner_email.push({ platform: result.platform, url: result.url, category: result.category, status: result.status });
+                const category = result.category || 'Other';
+                if (!categories[category]) {
+                    const div = document.createElement('div');
+                    div.className = 'card mb-2';
+                    div.style.cssText = 'border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;';
+                    div.innerHTML = `
+                        <div class="card-header text-white py-2" style="background:linear-gradient(135deg,#0c3f7b,#1a5aa0);">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="fw-bold small">${getCatIcon(category)} ${category}</span>
+                                <span class="badge bg-light text-dark cat-count" style="font-size:0.7rem;">0</span>
+                            </div>
+                        </div>
+                        <div class="card-body p-0"><div class="table-responsive"><table class="table table-hover mb-0" style="font-size:0.85rem;"><tbody></tbody></table></div></div>`;
+                    resultsDiv.appendChild(div);
+                    categories[category] = { el: div, tbody: div.querySelector('tbody'), count: 0, found: 0 };
+                }
+                const cat = categories[category];
+                cat.count++; if (result.found) cat.found++;
+                const row = document.createElement('tr');
+                row.className = result.found ? 'table-success' : 'table-light';
+                row.style.opacity = '0';
+                row.innerHTML = `
+                    <td class="fw-semibold" style="width:60%">${result.platform}</td>
+                    <td style="width:40%">${result.found ? '<span class="badge bg-success" style="font-size:0.7rem;">✓ FOUND</span>' : '<span class="badge bg-secondary" style="font-size:0.7rem;">✗ Not Found</span>'}</td>`;
+                if (result.found || cat.count <= 2) { cat.tbody.appendChild(row); setTimeout(() => row.style.opacity = '1', 50); }
+                cat.el.querySelector('.cat-count').textContent = `${cat.found}/${cat.count}`;
+                foundBadge.textContent   = `${data.found_count} found`;
+                checkedBadge.textContent = `${data.checked_count} checked`;
+                progressBar.style.width  = `${Math.min((data.checked_count / 195) * 100, 98)}%`;
+            } else if (data.type === 'progress') {
+                checkedBadge.textContent = `${data.checked_count} checked`;
+                if (data.found_count !== undefined) foundBadge.textContent = `${data.found_count} found`;
+            } else if (data.type === 'complete') {
+                statusBadge.textContent = 'Complete'; statusBadge.className = 'badge bg-success';
+                progressBar.style.width = '100%'; progressBar.classList.remove('progress-bar-animated');
+                summaryDiv.style.display = 'block';
+                document.getElementById('uscan-final-found').textContent = data.found_count;
+                document.getElementById('uscan-final-time').textContent  = data.duration.toFixed(1);
+                es.close();
+            } else if (data.type === 'error') {
+                statusBadge.textContent = 'Error'; statusBadge.className = 'badge bg-danger';
+                es.close();
+            }
+        };
+        es.onerror = function() { statusBadge.textContent = 'Connection Error'; statusBadge.className = 'badge bg-warning'; es.close(); };
+    }
+
+    function getCatIcon(c) {
+        const m = {'Social Media':'📱','Developer':'💻','Gaming':'🎮','E-Commerce':'🛒','Messaging':'💬','Professional':'💼','Forum':'🗣️','Video':'🎥','Music':'🎵','Learning':'📚','Dating/Adult':'🔞'};
+        return m[c] || '📋';
+    }
+
+    /* ── BehindTheEmail AJAX ─────────────────────────── */
+    function loadBehindTheEmail(email) {
+        fetch(`/api/results/behindtheemail?email=${encodeURIComponent(email)}`)
+            .then(r => r.json())
+            .then(d => {
+                const statusBadge = document.getElementById('bte-status');
+                const loading = document.getElementById('bte-loading');
+                const resultDiv = document.getElementById('bte-result');
+                const emptyDiv = document.getElementById('bte-empty');
+                const errorDiv = document.getElementById('bte-error');
+                if (!loading) return;
+                loading.style.display = 'none';
+
+                if (d.error) {
+                    document.getElementById('bte-error-msg').textContent = d.error;
+                    errorDiv.style.display = '';
+                    statusBadge.textContent = 'Error'; statusBadge.className = 'badge bg-warning text-dark';
+                    _pdfData.behindtheemail_result = d;
+                    return;
+                }
+                if (d.status === 'not_found' || !d.profile || !Object.keys(d.profile).length) {
+                    emptyDiv.style.display = '';
+                    statusBadge.textContent = 'Not Found'; statusBadge.className = 'badge bg-secondary';
+                    _pdfData.behindtheemail_result = d;
+                    return;
+                }
+
+                statusBadge.textContent = 'Found'; statusBadge.className = 'badge bg-success';
+                _pdfData.behindtheemail_result = d;
+                resultDiv.style.display = '';
+                resultDiv.innerHTML = _bteRender(d.profile);
+            })
+            .catch(err => {
+                const loading = document.getElementById('bte-loading');
+                const errorDiv = document.getElementById('bte-error');
+                const statusBadge = document.getElementById('bte-status');
+                if (loading) loading.style.display = 'none';
+                if (errorDiv) {
+                    document.getElementById('bte-error-msg').textContent = 'Failed to reach BehindTheEmail API.';
+                    errorDiv.style.display = '';
+                }
+                if (statusBadge) { statusBadge.textContent = 'Error'; statusBadge.className = 'badge bg-danger'; }
+            });
+    }
+
+    /* ══════════════════════════════════════════════════
+       BehindTheEmail — Recursive Intelligence Renderer
+       ══════════════════════════════════════════════════ */
+
+    const _BTE_PLAT = {
+        google:     { icon: 'bi-google',          color: '#ea4335', label: 'Google' },
+        linkedin:   { icon: 'bi-linkedin',         color: '#0a66c2', label: 'LinkedIn' },
+        linkedIn:   { icon: 'bi-linkedin',         color: '#0a66c2', label: 'LinkedIn' },
+        github:     { icon: 'bi-github',           color: '#24292e', label: 'GitHub' },
+        gitlab:     { icon: 'bi-gitlab',           color: '#fc6d26', label: 'GitLab' },
+        microsoft:  { icon: 'bi-microsoft',        color: '#00a4ef', label: 'Microsoft' },
+        tiktok:     { icon: 'bi-tiktok',           color: '#010101', label: 'TikTok' },
+        gravatar:   { icon: 'bi-person-circle',    color: '#1e8cbe', label: 'Gravatar' },
+        chess:      { icon: 'bi-trophy',           color: '#739552', label: 'Chess.com' },
+        duolingo:   { icon: 'bi-translate',        color: '#58cc02', label: 'Duolingo' },
+        etsy:       { icon: 'bi-shop',             color: '#f1641e', label: 'Etsy' },
+        flickr:     { icon: 'bi-camera',           color: '#ff0084', label: 'Flickr' },
+        adobe:      { icon: 'bi-filetype-ai',      color: '#e82222', label: 'Adobe' },
+        vsco:       { icon: 'bi-image',            color: '#000000', label: 'VSCO' },
+        dataBreach: { icon: 'bi-shield-fill-exclamation', color: '#dc3545', label: 'Data Breach' },
+        registeredAccounts: { icon: 'bi-person-lines-fill', color: '#6f42c1', label: 'Registered Accounts' },
+        emailService: { icon: 'bi-envelope-at',   color: '#0d6efd', label: 'Email Service' },
+        emailPattern: { icon: 'bi-at',            color: '#0d6efd', label: 'Email Pattern' },
+        summary:    { icon: 'bi-person-vcard',    color: '#1b4f72', label: 'Summary' },
+    };
+
+    const _BTE_SECTIONS = [
+        { label: 'Identity & Summary',   icon: 'bi-person-fill',             color: '#1b4f72', keys: ['summary','gravatar'] },
+        { label: 'Social Profiles',      icon: 'bi-share-fill',              color: '#0a66c2', keys: ['linkedIn','linkedin','tiktok','vsco','flickr','chess','duolingo'] },
+        { label: 'Developer Profiles',   icon: 'bi-code-slash',              color: '#24292e', keys: ['github','gitlab'] },
+        { label: 'Platform Accounts',    icon: 'bi-grid-3x3-gap-fill',       color: '#0078d4', keys: ['google','microsoft','adobe','etsy'] },
+        { label: 'Email Intelligence',   icon: 'bi-envelope-at-fill',        color: '#6f42c1', keys: ['emailService','emailPattern','website','registeredAccounts'] },
+        { label: 'Risk & Exposure',      icon: 'bi-shield-fill-exclamation', color: '#dc3545', keys: ['dataBreach'] },
+    ];
+
+    /* ── Core: recursively format ANY value — NEVER returns [object Object] ── */
+    function _bteVal(v, depth) {
+        depth = depth || 0;
+        if (v === null || v === undefined) return '';
+        if (typeof v === 'boolean')
+            return v ? '<span class="bte-bool-yes">Yes</span>' : '<span class="bte-bool-no">No</span>';
+        if (typeof v === 'number')
+            return `<span class="bte-num">${v.toLocaleString()}</span>`;
+        if (typeof v === 'string') {
+            if (!v.trim()) return '';
+            if (/^\d{4}-\d{2}-\d{2}T/.test(v)) {
+                try { return `<span class="bte-date">${new Date(v).toLocaleDateString('en-IN',{year:'numeric',month:'short',day:'numeric'})}</span>`; } catch(e) {}
+            }
+            if (v.startsWith('http://') || v.startsWith('https://')) {
+                if (/photo|avatar|image|logo/i.test(v) || /\.(jpg|jpeg|png|gif|webp)/i.test(v.split('?')[0]))
+                    return `<img src="${_bteEsc(v)}" class="${depth === 0 ? 'bte-thumb' : 'bte-thumb-sm'}" onerror="this.style.display='none'" loading="lazy">`;
+                return `<a href="${_bteEsc(v)}" target="_blank" rel="noopener" class="bte-link">${_bteEsc(v.length > 70 ? v.slice(0,67)+'…' : v)}</a>`;
+            }
+            if (v.length > 240) {
+                const uid = 'bx' + Math.random().toString(36).slice(2,7);
+                return `<span id="${uid}s" class="bte-text">${_bteEsc(v.slice(0,237))}… <button class="bte-expand-btn" onclick="document.getElementById('${uid}s').style.display='none';document.getElementById('${uid}f').style.display=''">more</button></span>`
+                     + `<span id="${uid}f" style="display:none" class="bte-text">${_bteEsc(v)} <button class="bte-expand-btn" onclick="document.getElementById('${uid}f').style.display='none';document.getElementById('${uid}s').style.display=''">less</button></span>`;
+            }
+            return `<span class="bte-text">${_bteEsc(v)}</span>`;
+        }
+        if (Array.isArray(v)) {
+            const items = v.filter(x => x !== null && x !== undefined && x !== '');
+            if (!items.length) return '';
+            if (items.every(x => typeof x !== 'object' || x === null))
+                return `<div class="bte-chips">${items.map(x=>`<span class="bte-chip">${_bteEsc(String(x))}</span>`).join('')}</div>`;
+            if (depth < 4)
+                return `<div class="bte-list">${items.map(x=>`<div class="bte-list-item">${_bteObj(x, depth+1)}</div>`).join('')}</div>`;
+            return `<span class="bte-num">${items.length} items</span>`;
+        }
+        if (typeof v === 'object') {
+            if (depth < 4) return `<div class="bte-kv-nested">${_bteObj(v, depth+1)}</div>`;
+            return `<span class="bte-text">${_bteEsc(Object.keys(v).join(', '))}</span>`;
+        }
+        return `<span class="bte-text">${_bteEsc(String(v))}</span>`;
+    }
+
+    /* ── Render a plain object as key-value rows, using 2-col grid when appropriate ── */
+    function _bteObj(obj, depth) {
+        if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return _bteVal(obj, depth);
+        const entries = Object.entries(obj).filter(([,v]) => {
+            if (v === null || v === undefined || v === '') return false;
+            if (Array.isArray(v) && !v.length) return false;
+            return true;
+        });
+        if (!entries.length) return '';
+        /* Separate simple scalar fields from complex (nested obj/array) fields */
+        const simple  = entries.filter(([,v]) => typeof v !== 'object' || v === null);
+        const complex = entries.filter(([,v]) => typeof v === 'object' && v !== null);
+        let html = '';
+        /* Simple fields → 2-col grid at depth 1 */
+        if (simple.length && depth === 1) {
+            html += `<div class="bte-data-grid">`;
+            simple.forEach(([k,v]) => {
+                const label = k.replace(/([A-Z])/g,' $1').replace(/^./,s=>s.toUpperCase());
+                const rendered = _bteVal(v, depth);
+                if (!rendered) return;
+                html += `<div class="bte-kv-row" style="border-bottom:none;"><div class="bte-kv-key">${_bteEsc(label)}</div><div class="bte-kv-val">${rendered}</div></div>`;
+            });
+            html += `</div>`;
+            if (complex.length) html += `<hr style="border:none;border-top:1px solid #eaf0fb;margin:0.6rem 0;">`;
+        } else if (simple.length) {
+            html += `<div class="bte-kv">${simple.map(([k,v]) => {
+                const label = k.replace(/([A-Z])/g,' $1').replace(/^./,s=>s.toUpperCase());
+                const rendered = _bteVal(v, depth);
+                if (!rendered) return '';
+                return `<div class="bte-kv-row"><div class="bte-kv-key">${_bteEsc(label)}</div><div class="bte-kv-val">${rendered}</div></div>`;
+            }).join('')}</div>`;
+        }
+        /* Complex fields → full-width kv rows */
+        if (complex.length) {
+            html += `<div class="bte-kv">${complex.map(([k,v]) => {
+                const label = k.replace(/([A-Z])/g,' $1').replace(/^./,s=>s.toUpperCase());
+                const rendered = _bteVal(v, depth);
+                if (!rendered) return '';
+                return `<div class="bte-kv-row"><div class="bte-kv-key">${_bteEsc(label)}</div><div class="bte-kv-val">${rendered}</div></div>`;
+            }).join('')}</div>`;
+        }
+        return html;
+    }
+
+    /* ── Build one platform card with hero header ── */
+    function _bteKeyBlock(key, val) {
+        if (val === null || val === undefined || val === '') return '';
+        if (Array.isArray(val) && !val.length) return '';
+        const plat  = _BTE_PLAT[key] || { icon:'bi-info-circle', color:'#6b7a99', label: key.replace(/([A-Z])/g,' $1').replace(/^./,s=>s.toUpperCase()) };
+        const isObj = val !== null && typeof val === 'object' && !Array.isArray(val);
+
+        /* Pull hero metadata */
+        const avatarUrl  = isObj ? (val.avatarUrl || val.photoUrl || (val.basic && val.basic.photoUrl) || '') : '';
+        const profileUrl = isObj ? (val.profileUrl || '') : '';
+        const dispName   = isObj ? (val.basic && val.basic.displayName ? val.basic.displayName
+                                   : val.username ? val.username
+                                   : val.displayName || val.name || '') : '';
+        const headline   = isObj ? (val.basic && val.basic.headline ? val.basic.headline
+                                   : val.basic && val.basic.summary ? val.basic.summary.slice(0,120)
+                                   : '') : '';
+        const status     = isObj ? (val.status || '') : '';
+
+        /* Body content */
+        const bodyContent = isObj ? _bteObj(val, 1) : _bteVal(val, 0);
+        if (!bodyContent) return '';
+
+        /* Status badge colour */
+        const statusColor = status === 'active' ? '#198754' : status ? '#6c757d' : '';
+
+        return `<div class="bte-platform-card">
+            <div class="bte-platform-hero">
+                ${avatarUrl
+                    ? `<img src="${_bteEsc(avatarUrl)}" class="bte-platform-avatar" onerror="this.style.display='none';this.nextSibling.style.display='flex'" loading="lazy"><div class="bte-platform-icon-lg" style="background:${plat.color};display:none;"><i class="bi ${plat.icon}"></i></div>`
+                    : `<div class="bte-platform-icon-lg" style="background:${plat.color};"><i class="bi ${plat.icon}"></i></div>`}
+                <div class="bte-hero-info">
+                    <div class="bte-hero-name">${_bteEsc(dispName || plat.label)}</div>
+                    ${headline ? `<div class="bte-hero-sub">${_bteEsc(headline.length>140?headline.slice(0,137)+'…':headline)}</div>` : ''}
+                    <div style="display:flex;flex-wrap:wrap;gap:0.35rem;margin-top:0.3rem;align-items:center;">
+                        ${profileUrl ? `<a href="${_bteEsc(profileUrl)}" target="_blank" rel="noopener" class="bte-hero-badge"><i class="bi bi-box-arrow-up-right"></i> View Profile</a>` : ''}
+                        ${status ? `<span class="bte-hero-badge" style="background:${statusColor};">${_bteEsc(status.charAt(0).toUpperCase()+status.slice(1))}</span>` : ''}
+                        <span class="bte-hero-badge purple" style="background:${plat.color};"><i class="bi ${plat.icon}"></i> ${_bteEsc(plat.label)}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="bte-platform-body">${bodyContent}</div>
+        </div>`;
+    }
+
+    function _bteRender(profile) {
+        const allCoveredKeys = new Set(_BTE_SECTIONS.flatMap(s => s.keys));
+        let html = '';
+
+        _BTE_SECTIONS.forEach(sec => {
+            const present = sec.keys.filter(k => {
+                const v = profile[k];
+                return v !== undefined && v !== null && v !== '' && !(Array.isArray(v) && !v.length);
+            });
+            if (!present.length) return;
+            html += `<div class="bte-section">
+                <div class="bte-section-head">
+                    <div class="bte-section-icon" style="background:${sec.color};"><i class="bi ${sec.icon}"></i></div>
+                    <span class="bte-section-label">${sec.label}</span>
+                </div>`;
+            present.forEach(k => { html += _bteKeyBlock(k, profile[k]); });
+            html += `</div>`;
+        });
+
+        const extras = Object.keys(profile).filter(k => !allCoveredKeys.has(k) && profile[k] !== undefined && profile[k] !== null && profile[k] !== '');
+        if (extras.length) {
+            html += `<div class="bte-section">
+                <div class="bte-section-head">
+                    <div class="bte-section-icon" style="background:#6c757d;"><i class="bi bi-three-dots"></i></div>
+                    <span class="bte-section-label">Additional Intelligence</span>
+                </div>`;
+            extras.forEach(k => { html += _bteKeyBlock(k, profile[k]); });
+            html += `</div>`;
+        }
+
+        return html || '<div class="alert alert-info mb-0">No intelligence data available.</div>';
+    }
+
+    function _bteEsc(s) {
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Login History — Admin{% endblock %}
+
+{% block extra_css %}
+.section-head { background:linear-gradient(90deg,#062952,#0c3f7b); color:#fff; padding:.7rem 1.2rem; font-weight:600; font-size:.9rem; border-radius:14px 14px 0 0; }
+.portal-card  { background:#fff; border:1px solid #dce6f5; border-radius:14px; box-shadow:0 4px 20px rgba(6,41,82,0.06); margin-bottom:1.25rem; overflow:hidden; }
+.ev-success { color:#1f7a3f; font-weight:700; }
+.ev-failed  { color:#9c1f1f; font-weight:700; }
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 px-4">
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <a href="/admin/officers" class="btn btn-outline-secondary btn-sm" style="border-radius:.6rem;">&larr; Back to Officers</a>
+        <h4 class="mb-0" style="color:#062952;font-weight:700;">Login History</h4>
+        <span class="text-muted" style="font-size:.84rem;">(last {{ events | length }} login events)</span>
+    </div>
+
+    <div class="portal-card">
+        <div class="section-head">Authentication Events</div>
+        {% if events %}
+        <div class="table-responsive">
+            <table class="table table-hover table-sm mb-0" style="font-size:.85rem;">
+                <thead style="background:#f4f7fb;">
+                    <tr>
+                        <th class="ps-3">Time (UTC)</th>
+                        <th>Action</th>
+                        <th>Username</th>
+                        <th>Status</th>
+                        <th>IP Address</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for e in events %}
+                <tr>
+                    <td class="ps-3" style="color:#666;white-space:nowrap;">{{ e.timestamp.strftime('%Y-%m-%d %H:%M:%S') if e.timestamp else '—' }}</td>
+                    <td>{{ e.action }}</td>
+                    <td style="font-weight:600;">{{ e.username or '—' }}</td>
+                    <td>
+                        {% if e.status == 'success' %}
+                            <span class="ev-success">&#x2714; success</span>
+                        {% else %}
+                            <span class="ev-failed">&#x2718; {{ e.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="color:#666;">{{ e.ip or '—' }}</td>
+                    <td style="color:#666;font-size:.8rem;">
+                        {% if e.details %}{{ e.details | tojson | truncate(60) }}{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+            <p class="text-muted p-3 mb-0">No login events found in audit log.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

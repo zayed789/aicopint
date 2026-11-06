@@ -1,0 +1,389 @@
+{% extends "base.html" %}
+
+{% block title %}OSINT Portal - Email Intelligence{% endblock %}
+
+{% block extra_css %}
+        .tool-nav-pills .nav-link {
+            color: var(--navy);
+            border: 1px solid #d8e2f1;
+            border-radius: 8px;
+            margin-right: 0.5rem;
+            padding: 0.5rem 1rem;
+            font-weight: 500;
+        }
+
+        .tool-nav-pills .nav-link.active {
+            background: var(--navy);
+            color: #fff;
+        }
+
+        .tool-nav-pills .nav-link:hover {
+            background: #e8f0fa;
+        }
+
+        .tool-nav-pills .nav-link.active:hover {
+            background: var(--navy);
+        }
+{% endblock %}
+
+{% block content %}
+    <main class="container my-4 my-md-5">
+        <div class="portal-card">
+            <div class="section-head">Email Intelligence — OSINT Tools</div>
+            <div class="p-3 p-md-4">
+                <div class="tool-nav-pills mb-4">
+                    <a href="/tools/email" class="nav-link {% if tool_type == 'email' %}active{% endif %}">Email Tools</a>
+                    <a href="/tools/phone" class="nav-link {% if tool_type == 'phone' %}active{% endif %}">Phone Tools</a>
+                    <a href="/tools/username" class="nav-link {% if tool_type == 'username' %}active{% endif %}">Username Tools</a>
+                </div>
+
+                <p class="text-muted mb-3">Run targeted email-based OSINT checks for footprint analysis and breach detection.</p>
+                <form method="POST" class="mb-3">
+                    <div class="row g-2">
+                        <div class="col-md-8">
+                            <input type="email" name="email" class="form-control input-control" placeholder="Enter email address" value="{{ email or '' }}">
+                        </div>
+                        <div class="col-md-4 d-grid">
+                            <button type="submit" class="btn btn-intel input-control">Run Scan</button>
+                        </div>
+                    </div>
+                    <div class="tool-picker mt-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="fw-semibold">Select Email OSINT Tools</div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="select-all-tools" onclick="toggleAllTools(this)">
+                                <label class="form-check-label fw-semibold" for="select-all-tools">Select All</label>
+                            </div>
+                        </div>
+                        <div class="row g-2">
+                            {% for tool in email_tools %}
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input tool-checkbox" type="checkbox" name="tools" value="{{ tool.id }}" id="tool-{{ tool.id }}"
+                                               {% if selected_tools and tool.id in selected_tools %}checked{% endif %}>
+                                        <label class="form-check-label" for="tool-{{ tool.id }}">{{ tool.label }}</label>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </form>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <div class="service-tile"><strong>INT-01:</strong> Email footprint discovery</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="service-tile"><strong>INT-02:</strong> Breach data pivots</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="service-tile"><strong>INT-03:</strong> Domain security posture</div>
+                    </div>
+                </div>
+
+                {% if error %}
+                    <div class="alert alert-danger">{{ error }}</div>
+                {% endif %}
+
+                <!-- Holehe Live SSE Section -->
+                {% if selected_tools and 'holehe' in selected_tools and email %}
+                <div class="card mb-4" id="holehe-section" style="border-radius: 12px; border: 1px solid #e2e8f0;">
+                    <div class="card-header text-white" style="background: linear-gradient(135deg, #062952 0%, #0c3f7b 100%);">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h3 class="h5 mb-0">📧 Holehe Email Footprint — {{ email }}</h3>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-primary" id="holehe-status">Scanning…</span>
+                                <span class="badge bg-success" id="holehe-count">0 found</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="holehe-scanning" class="p-3"><small class="text-muted"><span class="spinner-border spinner-border-sm me-1" role="status"></span>Running 123 module checks, please wait…</small></div>
+                        <div class="table-responsive" id="holehe-table-wrap" style="display:none">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width:30%">Site Name</th>
+                                        <th style="width:20%">Status</th>
+                                        <th style="width:50%">Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="holehe-tbody"></tbody>
+                            </table>
+                        </div>
+                        <div id="holehe-empty" class="alert alert-info m-3 mb-0" style="display:none">No associated public registrations detected for this email.</div>
+                        <div id="holehe-error" class="alert alert-danger m-3 mb-0" style="display:none"></div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Disposable + Pivots (async, instant) -->
+                {% if selected_tools and (('disposable' in selected_tools) or ('emailpivots' in selected_tools)) and email %}
+                <div class="row g-3 mb-4">
+                    {% if selected_tools and 'disposable' in selected_tools %}
+                    <div class="col-md-6">
+                        <div class="intel-box" id="disposable-box">
+                            <h3 class="h6 mb-2">Disposable Email Risk</h3>
+                            <div id="disposable-loading"><small class="text-muted"><span class="spinner-border spinner-border-sm me-1" role="status"></span>Checking…</small></div>
+                            <div id="disposable-content" style="display:none"></div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if selected_tools and 'emailpivots' in selected_tools %}
+                    <div class="col-md-6">
+                        <div class="intel-box" id="pivots-box">
+                            <h3 class="h6 mb-2">Email Breach &amp; Intel Pivots</h3>
+                            <div id="pivots-loading"><small class="text-muted"><span class="spinner-border spinner-border-sm me-1" role="status"></span>Loading…</small></div>
+                            <div id="pivots-content" style="display:none"></div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- Live Streaming User-Scanner Results -->
+                <div id="email-streaming-section" class="mt-4" style="display: none;">
+                    <div class="card" style="border-radius: 12px; border: 1px solid #e2e8f0;">
+                        <div class="card-header text-white" style="background: linear-gradient(135deg, #062952 0%, #0c3f7b 100%);">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h3 class="h5 mb-0">📡 User-Scanner Live Results — {{ email }}</h3>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge bg-primary" id="email-scan-status">Scanning...</span>
+                                    <span class="badge bg-success" id="email-found-counter">0 found</span>
+                                    <span class="badge bg-secondary" id="email-checked-counter">0 checked</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="progress mb-3" style="height: 8px;">
+                                <div id="email-scan-progress" class="progress-bar progress-bar-striped progress-bar-animated"
+                                     role="progressbar" style="width: 0%"></div>
+                            </div>
+                            <div id="email-live-results-container" style="max-height: 600px; overflow-y: auto;"></div>
+                            <div id="email-scan-summary" class="alert alert-success mt-3 mb-0" style="display: none;">
+                                <strong>✓ Scan Complete!</strong> Found <span id="email-final-found">0</span> platforms in <span id="email-final-time">0</span>s
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+{% endblock %}
+
+{% block extra_js %}
+    <script>
+        function toggleAllTools(source) {
+            const checkboxes = document.querySelectorAll('.tool-checkbox');
+            for (let checkbox of checkboxes) {
+                checkbox.checked = source.checked;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const sel = {{ selected_tools | tojson }} || [];
+            const emailVal = {{ (email | tojson) if email else 'null' }};
+            if (!emailVal) return;
+
+            // Holehe — SSE (runs in parallel, shows results live as they arrive)
+            if (sel.includes('holehe')) { startHoleheScan(emailVal); }
+
+            // Disposable — instant AJAX
+            if (sel.includes('disposable')) {
+                fetch(`/api/results/disposable?email=${encodeURIComponent(emailVal)}`)
+                    .then(r => r.json()).then(renderDisposable).catch(() => {});
+            }
+
+            // Email pivots — instant AJAX
+            if (sel.includes('emailpivots')) {
+                fetch(`/api/results/email-pivots?email=${encodeURIComponent(emailVal)}`)
+                    .then(r => r.json()).then(renderEmailPivots).catch(() => {});
+            }
+
+            // User-scanner — SSE
+            if (sel.includes('user_scanner')) {
+                document.getElementById('email-streaming-section').style.display = 'block';
+                startEmailScan(emailVal);
+            }
+        });
+
+        function startHoleheScan(email) {
+            const statusBadge = document.getElementById('holehe-status');
+            const countBadge = document.getElementById('holehe-count');
+            let foundCount = 0;
+            const es = new EventSource(`/api/stream/holehe?email=${encodeURIComponent(email)}`);
+            es.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                if (data.type === 'result') {
+                    foundCount++;
+                    countBadge.textContent = `${foundCount} found`;
+                    const r = data.data;
+                    const wrap = document.getElementById('holehe-table-wrap');
+                    if (wrap.style.display === 'none') {
+                        document.getElementById('holehe-scanning').style.display = 'none';
+                        wrap.style.display = '';
+                    }
+                    let details = '';
+                    if (r.emailrecovery) details += `<small class="text-muted">Recovery: ${r.emailrecovery}</small><br>`;
+                    if (r.phoneNumber) details += `<small class="text-muted">Phone: ${r.phoneNumber}</small><br>`;
+                    if (r.others) { Object.entries(r.others).forEach(([k,v]) => { details += `<small class="text-muted">${k}: ${v}</small><br>`; }); }
+                    const tbody = document.getElementById('holehe-tbody');
+                    const row = document.createElement('tr');
+                    row.style.opacity = '0';
+                    row.innerHTML = `<td class="fw-semibold">${r.domain}</td><td><span class="badge bg-success">✓ Registered</span></td><td>${details}</td>`;
+                    tbody.appendChild(row);
+                    setTimeout(() => row.style.opacity = '1', 50);
+                } else if (data.type === 'complete') {
+                    statusBadge.textContent = 'Complete'; statusBadge.className = 'badge bg-success';
+                    if (foundCount === 0) {
+                        document.getElementById('holehe-scanning').style.display = 'none';
+                        document.getElementById('holehe-empty').style.display = '';
+                    }
+                    es.close();
+                } else if (data.type === 'error') {
+                    statusBadge.textContent = 'Error'; statusBadge.className = 'badge bg-danger';
+                    document.getElementById('holehe-scanning').style.display = 'none';
+                    const errDiv = document.getElementById('holehe-error');
+                    errDiv.textContent = data.message || 'Holehe scan failed.';
+                    errDiv.style.display = '';
+                    es.close();
+                }
+            };
+            es.onerror = function() { statusBadge.textContent = 'Error'; statusBadge.className = 'badge bg-danger'; es.close(); };
+        }
+
+        function renderDisposable(d) {
+            const loading = document.getElementById('disposable-loading');
+            const content = document.getElementById('disposable-content');
+            if (!loading || !content) return;
+            loading.style.display = 'none'; content.style.display = '';
+            content.innerHTML = `<p class="mb-1"><small><strong>Domain:</strong> ${d.domain}</small></p><p class="mb-1"><small><strong>Disposable:</strong> ${d.is_disposable ? 'Yes' : 'No'}</small></p><p class="mb-0"><small><strong>Risk:</strong> ${d.risk_level}</small></p>`;
+        }
+
+        function renderEmailPivots(d) {
+            const loading = document.getElementById('pivots-loading');
+            const content = document.getElementById('pivots-content');
+            if (!loading || !content) return;
+            loading.style.display = 'none'; content.style.display = '';
+            let html = `<p class="mb-2"><small><strong>Email:</strong> ${d.email}</small></p>`;
+            (d.pivots || []).forEach(p => { html += `<p class="mb-1"><small><a href="${p.url}" target="_blank">${p.name}</a></small></p>`; });
+            content.innerHTML = html;
+        }
+
+        function startEmailScan(emailQuery) {
+            const statusBadge = document.getElementById('email-scan-status');
+            const foundBadge = document.getElementById('email-found-counter');
+            const checkedBadge = document.getElementById('email-checked-counter');
+            const progressBar = document.getElementById('email-scan-progress');
+            const resultsDiv = document.getElementById('email-live-results-container');
+            const summaryDiv = document.getElementById('email-scan-summary');
+
+            const categories = {};
+            const eventSource = new EventSource(`/api/stream/scan?type=email&query=${encodeURIComponent(emailQuery)}`);
+
+            eventSource.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+
+                if (data.type === 'result') {
+                    const result = data.data;
+                    const category = result.category || 'Other';
+
+                    if (!categories[category]) {
+                        const catDiv = document.createElement('div');
+                        catDiv.className = 'card mb-2';
+                        catDiv.style = 'border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0;';
+                        catDiv.innerHTML = `
+                            <div class="card-header text-white py-2" style="background: linear-gradient(135deg, #0c3f7b 0%, #1a5aa0 100%);">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="fw-bold small">${getCategoryIcon(category)} ${category}</span>
+                                    <span class="badge bg-light text-dark cat-count" style="font-size:0.7rem;">0</span>
+                                </div>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover mb-0 cat-table" style="font-size:0.85rem;">
+                                        <tbody></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        `;
+                        resultsDiv.appendChild(catDiv);
+                        categories[category] = {
+                            element: catDiv,
+                            table: catDiv.querySelector('.cat-table tbody'),
+                            count: 0,
+                            foundCount: 0
+                        };
+                    }
+
+                    const cat = categories[category];
+                    cat.count++;
+                    if (result.found) cat.foundCount++;
+
+                    const row = document.createElement('tr');
+                    row.className = result.found ? 'table-success' : 'table-light';
+                    row.style.opacity = '0';
+                    row.innerHTML = `
+                        <td class="fw-semibold" style="width:30%;">${result.platform}</td>
+                        <td style="width:25%;">
+                            ${result.found ? '<span class="badge bg-success" style="font-size:0.7rem;">✓ FOUND</span>' : '<span class="badge bg-secondary" style="font-size:0.7rem;">✗ Not Found</span>'}
+                        </td>
+                        <td style="width:45%;" class="text-end">
+                            ${result.found ? `<a href="${result.url}" target="_blank" class="btn btn-sm btn-primary" style="font-size:0.7rem;padding:0.15rem 0.4rem;">View</a>` : ''}
+                            <button class="btn btn-sm btn-outline-secondary" style="font-size:0.7rem;padding:0.15rem 0.4rem;" onclick="navigator.clipboard.writeText('${result.url}')">Copy</button>
+                        </td>
+                    `;
+                    if (result.found || cat.count <= 2) {
+                        cat.table.appendChild(row);
+                        setTimeout(() => row.style.opacity = '1', 50);
+                    }
+                    cat.element.querySelector('.cat-count').textContent = `${cat.foundCount}/${cat.count}`;
+                    foundBadge.textContent = `${data.found_count} found`;
+                    checkedBadge.textContent = `${data.checked_count} checked`;
+                    const progress = Math.min((data.checked_count / 195) * 100, 98);
+                    progressBar.style.width = `${progress}%`;
+
+                } else if (data.type === 'progress') {
+                    checkedBadge.textContent = `${data.checked_count} checked`;
+                    if (data.found_count !== undefined) foundBadge.textContent = `${data.found_count} found`;
+
+                } else if (data.type === 'complete') {
+                    statusBadge.textContent = 'Complete';
+                    statusBadge.className = 'badge bg-success';
+                    progressBar.style.width = '100%';
+                    progressBar.classList.remove('progress-bar-animated');
+                    summaryDiv.style.display = 'block';
+                    document.getElementById('email-final-found').textContent = data.found_count;
+                    document.getElementById('email-final-time').textContent = data.duration.toFixed(1);
+                    eventSource.close();
+
+                } else if (data.type === 'error') {
+                    statusBadge.textContent = 'Error';
+                    statusBadge.className = 'badge bg-danger';
+                    const alert = document.createElement('div');
+                    alert.className = 'alert alert-danger mt-2';
+                    alert.textContent = data.message;
+                    resultsDiv.appendChild(alert);
+                    eventSource.close();
+                }
+            };
+
+            eventSource.onerror = function() {
+                statusBadge.textContent = 'Connection Error';
+                statusBadge.className = 'badge bg-warning';
+                eventSource.close();
+            };
+        }
+
+        function getCategoryIcon(category) {
+            const icons = {
+                'Social Media': '📱', 'Developer': '💻', 'Gaming': '🎮',
+                'E-Commerce': '🛒', 'Messaging': '💬', 'Professional': '💼',
+                'Forum': '🗣️', 'Video': '🎥', 'Music': '🎵',
+                'Learning': '📚', 'Dating/Adult': '🔞'
+            };
+            return icons[category] || '📋';
+        }
+    </script>
+{% endblock %}

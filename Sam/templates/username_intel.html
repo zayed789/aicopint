@@ -1,0 +1,576 @@
+{% extends "base.html" %}
+{% block title %}Username Intelligence — OSINT Portal{% endblock %}
+
+{% block extra_css %}
+.page-wrap { padding: 2rem 2rem 3rem; min-height: 100vh; }
+.content-wrap { max-width: 900px; margin: 0 auto; }
+.page-header { margin-bottom: 1.75rem; }
+.page-header h1 { font-size: 1.35rem; font-weight: 800; color: var(--navy); margin: 0 0 0.2rem; letter-spacing: -0.01em; }
+.page-header p  { font-size: 0.86rem; color: #6b7a99; margin: 0; }
+
+.scan-card { background:#fff; border:1px solid #dce6f5; border-radius:14px; box-shadow:0 2px 12px rgba(6,41,82,0.07); margin-bottom:1.25rem; overflow:hidden; }
+.scan-card-head { background:linear-gradient(135deg,var(--navy) 0%,#0c3f7b 100%); color:#fff; padding:0.85rem 1.1rem; display:flex; align-items:center; justify-content:space-between; gap:0.75rem; }
+.scan-card-title { font-size:0.95rem; font-weight:700; margin:0; }
+.scan-card-body  { padding:1.1rem 1.25rem; }
+
+.search-bar { display:flex; gap:0.6rem; margin-bottom:0.9rem; }
+.search-input { flex:1; border:1.5px solid #c8d8ef; border-radius:8px; padding:0.55rem 0.85rem; font-size:0.9rem; background:#f8fafd; color:#1a1f2b; outline:none; transition:border-color 0.15s,box-shadow 0.15s; }
+.search-input:focus { border-color:var(--navy); background:#fff; box-shadow:0 0 0 3px rgba(6,41,82,0.1); }
+.search-btn { padding:0.55rem 1.2rem; background:var(--navy); color:#fff; border:none; border-radius:8px; font-size:0.88rem; font-weight:700; cursor:pointer; transition:background 0.15s; }
+.search-btn:hover { background:#0f4687; }
+
+.tool-chips { display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.75rem; }
+.tool-chip { display:inline-flex; align-items:center; gap:0.3rem; padding:0.28rem 0.7rem; border:1.5px solid #c8d8ef; border-radius:999px; font-size:0.75rem; font-weight:600; color:#2d4f8a; background:#edf3ff; cursor:pointer; transition:background 0.14s,border-color 0.14s,color 0.14s; user-select:none; }
+.tool-chip.active { background:var(--navy); color:#fff; border-color:var(--navy); }
+.tool-chip input { display:none; }
+
+.result-section { margin-bottom:1.25rem; }
+.rs-head { background:linear-gradient(135deg,var(--navy) 0%,#0c3f7b 100%); color:#fff; padding:0.75rem 1.1rem; border-radius:10px 10px 0 0; display:flex; align-items:center; justify-content:space-between; gap:0.6rem; }
+.rs-head-blue   { background:linear-gradient(135deg,#0d4f93 0%,#1a6ab3 100%); }
+.rs-head-teal   { background:linear-gradient(135deg,#1a6ab3 0%,#2d85d9 100%); }
+.rs-head-purple { background:linear-gradient(135deg,#4a1d7a 0%,#7c3aed 100%); }
+.rs-title { font-size:0.88rem; font-weight:700; margin:0; }
+.rs-body { background:#fff; border:1px solid #dce6f5; border-top:none; border-radius:0 0 10px 10px; }
+.rs-inner { padding:0.85rem 1rem; }
+{% endblock %}
+
+{% block content %}
+<div class="page-wrap">
+<div class="content-wrap">
+
+    <div class="page-header">
+        <h1><i class="bi bi-person-fill me-2" style="color:var(--khaki);"></i>Username Intelligence</h1>
+        <p>Sherlock · Maigret · Combined deep scan · User-Scanner (195+ platforms)</p>
+    </div>
+
+    <!-- Search card -->
+    <div class="scan-card">
+        <div class="scan-card-head">
+            <span class="scan-card-title"><i class="bi bi-search me-2"></i>Target Username</span>
+        </div>
+        <div class="scan-card-body">
+            <form id="user-form" action="/username-intel" method="GET">
+                <div class="search-bar">
+                    <input class="search-input" type="text" name="username" id="username-input"
+                           placeholder="target_username" value="{{ username or '' }}" autocomplete="off">
+                    <button class="search-btn" type="submit"><i class="bi bi-play-fill"></i> Run Scan</button>
+                </div>
+
+                <div class="tool-chips">
+                    {% set tools = [
+                        ('sherlock',     'Sherlock (~300)',          'bi-search'),
+                        ('maigret',      'Maigret (~500)',            'bi-search-heart'),
+                        ('userdeep',     'Combined Deep Scan',        'bi-layers'),
+                        ('user_scanner', 'User-Scanner (195+)',       'bi-broadcast'),
+                    ] %}
+                    {% for tid, tlabel, ticon in tools %}
+                    <label class="tool-chip {% if not selected_tools or tid in selected_tools %}active{% endif %}">
+                        <input type="checkbox" name="tools" value="{{ tid }}"
+                               {% if not selected_tools or tid in selected_tools %}checked{% endif %}>
+                        <i class="bi {{ ticon }}"></i> {{ tlabel }}
+                    </label>
+                    {% endfor %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if username %}
+
+    {% set has_userdeep = not selected_tools or 'userdeep' in selected_tools %}
+    {% set has_sherlock = not selected_tools or 'sherlock' in selected_tools %}
+    {% set has_maigret  = not selected_tools or 'maigret'  in selected_tools %}
+    {% set has_uscan    = not selected_tools or 'user_scanner' in selected_tools %}
+
+    <!-- Sherlock (standalone, no userdeep) -->
+    {% if has_sherlock and not has_userdeep %}
+    <div class="result-section" id="sherlock-section">
+        <div class="rs-head rs-head-blue">
+            <span class="rs-title"><i class="bi bi-search me-2"></i>Sherlock Deep Scan — {{ username }}</span>
+            <div class="d-flex gap-2">
+                <span class="badge bg-primary" id="sherlock-status">Scanning…</span>
+                <span class="badge bg-success" id="sherlock-count">0 found</span>
+            </div>
+        </div>
+        <div class="rs-body">
+            <div class="rs-inner pb-0">
+                <div class="progress mb-3" style="height:7px;">
+                    <div id="sherlock-progress" class="progress-bar progress-bar-striped progress-bar-animated bg-info" style="width:0%"></div>
+                </div>
+            </div>
+            <div class="table-responsive px-1">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light"><tr><th>Site</th><th>Username</th><th>Link</th></tr></thead>
+                    <tbody id="sherlock-tbody"></tbody>
+                </table>
+            </div>
+            <div id="sherlock-summary" class="rs-inner" style="display:none;">
+                <div class="alert alert-success mb-0">Sherlock complete — <strong><span id="sherlock-final-count">0</span></strong> profiles found.</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Maigret (standalone, no userdeep) -->
+    {% if has_maigret and not has_userdeep %}
+    <div class="result-section" id="maigret-section">
+        <div class="rs-head rs-head-teal">
+            <span class="rs-title"><i class="bi bi-search-heart me-2"></i>Maigret Deep Scan — {{ username }}</span>
+            <div class="d-flex gap-2">
+                <span class="badge bg-primary" id="maigret-status">Scanning…</span>
+                <span class="badge bg-success" id="maigret-count">0 found</span>
+            </div>
+        </div>
+        <div class="rs-body">
+            <div class="rs-inner pb-0">
+                <div class="progress mb-3" style="height:7px;">
+                    <div id="maigret-progress" class="progress-bar progress-bar-striped progress-bar-animated bg-info" style="width:0%"></div>
+                </div>
+            </div>
+            <div class="table-responsive px-1">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light"><tr><th>Site</th><th>Username</th><th>Link</th></tr></thead>
+                    <tbody id="maigret-tbody"></tbody>
+                </table>
+            </div>
+            <div id="maigret-summary" class="rs-inner" style="display:none;">
+                <div class="alert alert-success mb-0">Maigret complete — <strong><span id="maigret-final-count">0</span></strong> profiles found.</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Combined Sherlock + Maigret (userdeep) -->
+    {% if has_userdeep %}
+    <div class="result-section" id="sherlock-section">
+        <div class="rs-head rs-head-blue">
+            <span class="rs-title"><i class="bi bi-search me-2"></i>Sherlock Deep Scan — {{ username }}</span>
+            <div class="d-flex gap-2">
+                <span class="badge bg-primary" id="sherlock-status">Scanning…</span>
+                <span class="badge bg-success" id="sherlock-count">0 found</span>
+            </div>
+        </div>
+        <div class="rs-body">
+            <div class="rs-inner pb-0">
+                <div class="progress mb-3" style="height:7px;">
+                    <div id="sherlock-progress" class="progress-bar progress-bar-striped progress-bar-animated bg-info" style="width:0%"></div>
+                </div>
+            </div>
+            <div class="table-responsive px-1">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light"><tr><th>Site</th><th>Username</th><th>Link</th></tr></thead>
+                    <tbody id="sherlock-tbody"></tbody>
+                </table>
+            </div>
+            <div id="sherlock-summary" class="rs-inner" style="display:none;">
+                <div class="alert alert-success mb-0">Sherlock complete — <strong><span id="sherlock-final-count">0</span></strong> profiles found.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="result-section" id="maigret-section">
+        <div class="rs-head rs-head-teal">
+            <span class="rs-title"><i class="bi bi-search-heart me-2"></i>Maigret Deep Scan — {{ username }}</span>
+            <div class="d-flex gap-2">
+                <span class="badge bg-primary" id="maigret-status">Scanning…</span>
+                <span class="badge bg-success" id="maigret-count">0 found</span>
+            </div>
+        </div>
+        <div class="rs-body">
+            <div class="rs-inner pb-0">
+                <div class="progress mb-3" style="height:7px;">
+                    <div id="maigret-progress" class="progress-bar progress-bar-striped progress-bar-animated bg-info" style="width:0%"></div>
+                </div>
+            </div>
+            <div class="table-responsive px-1">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light"><tr><th>Site</th><th>Username</th><th>Link</th></tr></thead>
+                    <tbody id="maigret-tbody"></tbody>
+                </table>
+            </div>
+            <div id="maigret-summary" class="rs-inner" style="display:none;">
+                <div class="alert alert-success mb-0">Maigret complete — <strong><span id="maigret-final-count">0</span></strong> profiles found.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="result-section" id="userdeep-section">
+        <div class="rs-head rs-head-purple">
+            <span class="rs-title"><i class="bi bi-layers me-2"></i>Combined Deep Scan — {{ username }}</span>
+            <span class="badge bg-success" id="userdeep-count">Loading…</span>
+        </div>
+        <div class="rs-body">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light"><tr><th style="width:30%">Site</th><th style="width:25%">Username</th><th>Link</th></tr></thead>
+                    <tbody id="userdeep-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- User-Scanner SSE -->
+    {% if has_uscan %}
+    <div class="result-section" id="uscan-section">
+        <div class="rs-head">
+            <span class="rs-title"><i class="bi bi-broadcast me-2"></i>User-Scanner Live Results — {{ username }}</span>
+            <div class="d-flex gap-2">
+                <span class="badge bg-primary" id="uscan-status">Scanning…</span>
+                <span class="badge bg-success" id="uscan-found">0 found</span>
+                <span class="badge bg-secondary" id="uscan-checked">0 checked</span>
+            </div>
+        </div>
+        <div class="rs-body">
+            <div class="rs-inner pb-0">
+                <div class="progress mb-3" style="height:7px;">
+                    <div id="uscan-progress" class="progress-bar progress-bar-striped progress-bar-animated" style="width:0%"></div>
+                </div>
+            </div>
+            <div id="uscan-results" style="padding:0 1rem 1rem;max-height:600px;overflow-y:auto;"></div>
+            <div id="uscan-summary" class="rs-inner" style="display:none;">
+                <div class="alert alert-success mb-0">Scan complete — <strong><span id="uscan-final-found">0</span></strong> platforms found in <span id="uscan-final-time">0</span>s</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Download PDF bar -->
+    <div style="display:flex;justify-content:flex-end;margin-bottom:1.5rem;">
+        <button id="ui-dl-btn" onclick="downloadIntelPdf()"
+                style="display:inline-flex;align-items:center;gap:.45rem;padding:.6rem 1.4rem;background:var(--navy);color:#fff;border:none;border-radius:8px;font-size:.88rem;font-weight:700;cursor:pointer;transition:background .15s;">
+            <i class="bi bi-file-earmark-pdf-fill"></i> Download PDF Report
+        </button>
+    </div>
+
+    {% endif %}{# end if username #}
+
+</div>{# /content-wrap #}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    /* ── Tool chip toggle ──────────────────────────────── */
+    document.querySelectorAll('.tool-chip').forEach(chip => {
+        chip.addEventListener('click', function() {
+            const cb = this.querySelector('input');
+            cb.checked = !cb.checked;
+            this.classList.toggle('active', cb.checked);
+        });
+    });
+
+    /* ── PDF data accumulator ──────────────────────────── */
+    const _pdfData = {
+        email: null, phone: null,
+        username: {{ (username | tojson) if username else 'null' }},
+        selected_tools: [],
+        holehe: [], sherlock_profiles: [], maigret_profiles: [], userdeep_profiles: [],
+        user_scanner_email: [], user_scanner_username: [],
+        disposable_result: null, email_pivots_result: null, phone_result: null
+    };
+
+    function downloadIntelPdf() {
+        const btn = document.getElementById('ui-dl-btn');
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Generating…';
+        btn.disabled = true;
+        fetch('/api/export/dashboard-pdf', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(_pdfData)
+        })
+        .then(r => { if (!r.ok) throw new Error('Failed'); return r.blob(); })
+        .then(blob => {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = `username_intel_${Date.now()}.pdf`;
+            document.body.appendChild(a); a.click();
+            document.body.removeChild(a); URL.revokeObjectURL(url);
+            btn.innerHTML = orig; btn.disabled = false;
+        })
+        .catch(err => { alert('PDF download failed: ' + err.message); btn.innerHTML = orig; btn.disabled = false; });
+    }
+
+    /* ── Boot scans on load ─────────────────────────────── */
+    document.addEventListener('DOMContentLoaded', function() {
+        const uname = {{ (username | tojson) if username else 'null' }};
+        const sel   = {{ selected_tools | tojson }};
+        const all   = !sel || sel.length === 0;
+        if (!uname) return;
+        _pdfData.selected_tools = sel.length ? sel : ['sherlock','maigret','userdeep','user_scanner'];
+
+        const hasUserdeep = all || sel.includes('userdeep');
+        const hasSherlock = all || sel.includes('sherlock');
+        const hasMaigret  = all || sel.includes('maigret');
+        const hasUscan    = all || sel.includes('user_scanner');
+
+        if (hasUserdeep) {
+            startCombinedStreaming(uname, hasSherlock, hasMaigret);
+        } else {
+            if (hasSherlock) startSherlockStreaming(uname);
+            if (hasMaigret)  startMaigretStreaming(uname);
+        }
+        if (hasUscan) startUserScannerStream(uname);
+    });
+
+    /* ── Sherlock ────────────────────────────────────────── */
+    function startSherlockStreaming(username) {
+        const statusBadge = document.getElementById('sherlock-status');
+        const countBadge  = document.getElementById('sherlock-count');
+        const progressBar = document.getElementById('sherlock-progress');
+        const tbody       = document.getElementById('sherlock-tbody');
+        const summary     = document.getElementById('sherlock-summary');
+        let found = 0, checked = 0, done = false;
+
+        const es = new EventSource(`/api/stream/sherlock?username=${encodeURIComponent(username)}`);
+        es.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            if (data.type === 'result') {
+                found++;
+                _pdfData.sherlock_profiles.push(data.url);
+                countBadge.textContent = `${found} found`;
+                const siteName = extractSiteName(data.url);
+                const row = document.createElement('tr');
+                row.style.opacity = '0';
+                row.innerHTML = `<td class="fw-semibold">${siteName}</td><td>${username}</td><td><a href="${data.url}" target="_blank" class="btn btn-sm btn-primary" style="font-size:0.78rem;">${data.url}</a></td>`;
+                tbody.appendChild(row); setTimeout(() => row.style.opacity = '1', 50);
+                checked++; progressBar.style.width = `${Math.min((checked / 300) * 100, 98)}%`;
+            } else if (data.type === 'progress') {
+                checked = data.checked || checked + 1;
+                progressBar.style.width = `${Math.min((checked / 300) * 100, 98)}%`;
+            } else if (data.type === 'complete') {
+                done = true;
+                statusBadge.textContent = 'Complete'; statusBadge.className = 'badge bg-success';
+                progressBar.style.width = '100%'; progressBar.classList.remove('progress-bar-animated');
+                summary.style.display = 'block';
+                document.getElementById('sherlock-final-count').textContent = found;
+                es.close();
+            } else if (data.type === 'error') {
+                done = true; statusBadge.textContent = 'Error'; statusBadge.className = 'badge bg-danger'; es.close();
+            }
+        };
+        es.onerror = function() { if (!done) { statusBadge.textContent = 'Connection Error'; statusBadge.className = 'badge bg-warning'; } es.close(); };
+    }
+
+    /* ── Maigret ─────────────────────────────────────────── */
+    function startMaigretStreaming(username) {
+        const statusBadge = document.getElementById('maigret-status');
+        const countBadge  = document.getElementById('maigret-count');
+        const progressBar = document.getElementById('maigret-progress');
+        const tbody       = document.getElementById('maigret-tbody');
+        const summary     = document.getElementById('maigret-summary');
+        let found = 0, checked = 0;
+
+        const es = new EventSource(`/api/stream/maigret?username=${encodeURIComponent(username)}`);
+        es.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            if (data.type === 'result') {
+                found++; _pdfData.maigret_profiles.push(data.url); countBadge.textContent = `${found} found`;
+                const siteName = extractSiteName(data.url);
+                const row = document.createElement('tr');
+                row.style.opacity = '0';
+                row.innerHTML = `<td class="fw-semibold">${siteName}</td><td>${username}</td><td><a href="${data.url}" target="_blank" class="btn btn-sm btn-primary" style="font-size:0.78rem;">${data.url}</a></td>`;
+                tbody.appendChild(row); setTimeout(() => row.style.opacity = '1', 50);
+                checked++; progressBar.style.width = `${Math.min((checked / 500) * 100, 98)}%`;
+            } else if (data.type === 'progress') {
+                checked = data.checked || checked + 1;
+                progressBar.style.width = `${Math.min((checked / 500) * 100, 98)}%`;
+            } else if (data.type === 'complete') {
+                statusBadge.textContent = 'Complete'; statusBadge.className = 'badge bg-success';
+                progressBar.style.width = '100%'; progressBar.classList.remove('progress-bar-animated');
+                summary.style.display = 'block';
+                document.getElementById('maigret-final-count').textContent = found;
+                es.close();
+            } else if (data.type === 'error') {
+                statusBadge.textContent = 'Error'; statusBadge.className = 'badge bg-danger'; es.close();
+            }
+        };
+        es.onerror = function() { statusBadge.textContent = 'Connection Error'; statusBadge.className = 'badge bg-warning'; es.close(); };
+    }
+
+    /* ── Combined (userdeep) ─────────────────────────────── */
+    function startCombinedStreaming(username, feedSherlock, feedMaigret) {
+        const deepCount = document.getElementById('userdeep-count');
+        const deepTbody = document.getElementById('userdeep-tbody');
+        const shSt = document.getElementById('sherlock-status');
+        const shCo = document.getElementById('sherlock-count');
+        const shPr = document.getElementById('sherlock-progress');
+        const shTb = document.getElementById('sherlock-tbody');
+        const shSu = document.getElementById('sherlock-summary');
+        const shFn = document.getElementById('sherlock-final-count');
+        const mgSt = document.getElementById('maigret-status');
+        const mgCo = document.getElementById('maigret-count');
+        const mgPr = document.getElementById('maigret-progress');
+        const mgTb = document.getElementById('maigret-tbody');
+        const mgSu = document.getElementById('maigret-summary');
+        const mgFn = document.getElementById('maigret-final-count');
+
+        let shDone = false, mgDone = false;
+        const seen = new Set();
+        let shFound = 0, shChecked = 0, mgFound = 0, mgChecked = 0;
+
+        function addToDeep(url, source) {
+            if (seen.has(url)) return;
+            seen.add(url);
+            _pdfData.userdeep_profiles.push(url);
+            const siteName = extractSiteName(url);
+            const row = document.createElement('tr');
+            row.style.opacity = '0';
+            row.innerHTML = `<td class="fw-semibold">${siteName}</td><td>${username}</td><td><a href="${url}" target="_blank" class="btn btn-sm btn-primary" style="font-size:0.78rem;">${url}</a><span class="badge bg-${source==='sherlock'?'info':'warning'} ms-1">${source}</span></td>`;
+            deepTbody.appendChild(row); setTimeout(() => row.style.opacity = '1', 50);
+            deepCount.textContent = `${seen.size} profiles`;
+        }
+
+        const shES = new EventSource(`/api/stream/sherlock?username=${encodeURIComponent(username)}`);
+        shES.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            if (data.type === 'result') {
+                addToDeep(data.url, 'sherlock');
+                shFound++; shCo.textContent = `${shFound} found`;
+                const siteName = extractSiteName(data.url);
+                const row = document.createElement('tr'); row.style.opacity = '0';
+                row.innerHTML = `<td class="fw-semibold">${siteName}</td><td>${username}</td><td><a href="${data.url}" target="_blank" class="btn btn-sm btn-primary" style="font-size:0.78rem;">${data.url}</a></td>`;
+                shTb.appendChild(row); setTimeout(() => row.style.opacity = '1', 50);
+                shChecked++; shPr.style.width = `${Math.min((shChecked/300)*100,98)}%`;
+            } else if (data.type === 'progress') {
+                shChecked = data.checked || shChecked + 1;
+                shPr.style.width = `${Math.min((shChecked/300)*100,98)}%`;
+            } else if (data.type === 'complete') {
+                shDone = true;
+                shSt.textContent = 'Complete'; shSt.className = 'badge bg-success';
+                shPr.style.width = '100%'; shPr.classList.remove('progress-bar-animated');
+                shSu.style.display = 'block'; shFn.textContent = shFound;
+                if (mgDone) deepCount.className = 'badge bg-success';
+                shES.close();
+            } else if (data.type === 'error') {
+                shSt.textContent = 'Error'; shSt.className = 'badge bg-danger'; shES.close();
+            }
+        };
+        shES.onerror = function() { shSt.textContent = 'Connection Error'; shSt.className = 'badge bg-warning'; shES.close(); };
+
+        const mgES = new EventSource(`/api/stream/maigret?username=${encodeURIComponent(username)}`);
+        mgES.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            if (data.type === 'result') {
+                addToDeep(data.url, 'maigret');
+                mgFound++; mgCo.textContent = `${mgFound} found`;
+                const siteName = extractSiteName(data.url);
+                const row = document.createElement('tr'); row.style.opacity = '0';
+                row.innerHTML = `<td class="fw-semibold">${siteName}</td><td>${username}</td><td><a href="${data.url}" target="_blank" class="btn btn-sm btn-primary" style="font-size:0.78rem;">${data.url}</a></td>`;
+                mgTb.appendChild(row); setTimeout(() => row.style.opacity = '1', 50);
+                mgChecked++; mgPr.style.width = `${Math.min((mgChecked/500)*100,98)}%`;
+            } else if (data.type === 'progress') {
+                mgChecked = data.checked || mgChecked + 1;
+                mgPr.style.width = `${Math.min((mgChecked/500)*100,98)}%`;
+            } else if (data.type === 'complete') {
+                mgDone = true;
+                mgSt.textContent = 'Complete'; mgSt.className = 'badge bg-success';
+                mgPr.style.width = '100%'; mgPr.classList.remove('progress-bar-animated');
+                mgSu.style.display = 'block'; mgFn.textContent = mgFound;
+                if (shDone) deepCount.className = 'badge bg-success';
+                mgES.close();
+            } else if (data.type === 'error') {
+                mgSt.textContent = 'Error'; mgSt.className = 'badge bg-danger'; mgES.close();
+            }
+        };
+        mgES.onerror = function() { mgSt.textContent = 'Connection Error'; mgSt.className = 'badge bg-warning'; mgES.close(); };
+    }
+
+    /* ── User-Scanner ────────────────────────────────────── */
+    function startUserScannerStream(query) {
+        const statusBadge  = document.getElementById('uscan-status');
+        const foundBadge   = document.getElementById('uscan-found');
+        const checkedBadge = document.getElementById('uscan-checked');
+        const progressBar  = document.getElementById('uscan-progress');
+        const resultsDiv   = document.getElementById('uscan-results');
+        const summaryDiv   = document.getElementById('uscan-summary');
+        const categories   = {};
+
+        const es = new EventSource(`/api/stream/scan?type=username&query=${encodeURIComponent(query)}`);
+        es.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            if (data.type === 'result') {
+                const result   = data.data;
+                if (result.found) _pdfData.user_scanner_username.push({ platform: result.platform, url: result.url, category: result.category, status: result.status });
+                const category = result.category || 'Other';
+                if (!categories[category]) {
+                    const div = document.createElement('div');
+                    div.className = 'card mb-2';
+                    div.style.cssText = 'border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;';
+                    div.innerHTML = `
+                        <div class="card-header text-white py-2" style="background:linear-gradient(135deg,#0c3f7b,#1a5aa0);">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="fw-bold small">${getCatIcon(category)} ${category}</span>
+                                <span class="badge bg-light text-dark cat-count" style="font-size:0.7rem;">0</span>
+                            </div>
+                        </div>
+                        <div class="card-body p-0"><div class="table-responsive"><table class="table table-hover mb-0" style="font-size:0.85rem;"><tbody></tbody></table></div></div>`;
+                    resultsDiv.appendChild(div);
+                    categories[category] = { el: div, tbody: div.querySelector('tbody'), count: 0, found: 0 };
+                }
+                const cat = categories[category];
+                cat.count++; if (result.found) cat.found++;
+                const row = document.createElement('tr');
+                row.className = result.found ? 'table-success' : 'table-light';
+                row.style.opacity = '0';
+                row.innerHTML = `
+                    <td class="fw-semibold" style="width:30%">${result.platform}</td>
+                    <td style="width:25%">${result.found ? '<span class="badge bg-success" style="font-size:0.7rem;">✓ FOUND</span>' : '<span class="badge bg-secondary" style="font-size:0.7rem;">✗ Not Found</span>'}</td>
+                    <td style="width:45%" class="text-end">
+                        ${result.found ? `<a href="${result.url}" target="_blank" class="btn btn-sm btn-primary" style="font-size:0.7rem;padding:.15rem .4rem;">View</a>` : ''}
+                        <button class="btn btn-sm btn-outline-secondary" style="font-size:0.7rem;padding:.15rem .4rem;" onclick="navigator.clipboard.writeText('${result.url}')">Copy</button>
+                    </td>`;
+                if (result.found || cat.count <= 2) { cat.tbody.appendChild(row); setTimeout(() => row.style.opacity = '1', 50); }
+                cat.el.querySelector('.cat-count').textContent = `${cat.found}/${cat.count}`;
+                foundBadge.textContent   = `${data.found_count} found`;
+                checkedBadge.textContent = `${data.checked_count} checked`;
+                progressBar.style.width  = `${Math.min((data.checked_count / 195) * 100, 98)}%`;
+            } else if (data.type === 'progress') {
+                checkedBadge.textContent = `${data.checked_count} checked`;
+                if (data.found_count !== undefined) foundBadge.textContent = `${data.found_count} found`;
+            } else if (data.type === 'complete') {
+                statusBadge.textContent = 'Complete'; statusBadge.className = 'badge bg-success';
+                progressBar.style.width = '100%'; progressBar.classList.remove('progress-bar-animated');
+                summaryDiv.style.display = 'block';
+                document.getElementById('uscan-final-found').textContent = data.found_count;
+                document.getElementById('uscan-final-time').textContent  = data.duration.toFixed(1);
+                es.close();
+            } else if (data.type === 'error') {
+                statusBadge.textContent = 'Error'; statusBadge.className = 'badge bg-danger'; es.close();
+            }
+        };
+        es.onerror = function() { statusBadge.textContent = 'Connection Error'; statusBadge.className = 'badge bg-warning'; es.close(); };
+    }
+
+    function extractSiteName(url) {
+        try { const h = new URL(url).hostname.replace(/^www\./, '').split('.')[0]; return h.charAt(0).toUpperCase() + h.slice(1); } catch(e) { return url; }
+    }
+    function getCatIcon(c) {
+        const m = {'Social Media':'📱','Developer':'💻','Gaming':'🎮','E-Commerce':'🛒','Messaging':'💬','Professional':'💼','Forum':'🗣️','Video':'🎥','Music':'🎵','Learning':'📚','Dating/Adult':'🔞'};
+        return m[c] || '📋';
+    }
+
+    function downloadIntelPdf() {
+        const btn = document.getElementById('ui-dl-btn');
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Generating…';
+        btn.disabled = true;
+        fetch('/api/export/dashboard-pdf', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(_pdfData)
+        })
+        .then(r => { if (!r.ok) throw new Error('Failed'); return r.blob(); })
+        .then(blob => {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = `username_intel_${Date.now()}.pdf`;
+            document.body.appendChild(a); a.click();
+            document.body.removeChild(a); URL.revokeObjectURL(url);
+            btn.innerHTML = orig; btn.disabled = false;
+        })
+        .catch(err => { alert('PDF download failed: ' + err.message); btn.innerHTML = orig; btn.disabled = false; });
+    }
+</script>
+{% endblock %}

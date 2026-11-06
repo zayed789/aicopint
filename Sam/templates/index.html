@@ -1,0 +1,1265 @@
+{% extends "base.html" %}
+{% block title %}Intelligence Dashboard — OSINT Portal{% endblock %}
+
+{% block extra_css %}
+/* ─── Page layout ──────────────────────────────────── */
+.dash-page {
+    padding: 2rem 2rem 3rem;
+    min-height: 100vh;
+}
+.dash-header { margin-bottom: 2rem; }
+.dash-header h1 {
+    font-size: 1.45rem; font-weight: 800;
+    color: var(--navy); margin: 0 0 0.25rem;
+    letter-spacing: -0.01em;
+}
+.dash-header p {
+    font-size: 0.88rem; color: #6b7a99; margin: 0;
+}
+
+/* ─── Intel grid ───────────────────────────────────── */
+.intel-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem;
+}
+@media (max-width: 1100px) { .intel-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 680px)  { .intel-grid { grid-template-columns: 1fr; } }
+
+/* ─── Intel card ───────────────────────────────────── */
+.intel-card {
+    background: #fff;
+    border: 1px solid #dce6f5;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(6,41,82,0.07);
+    display: flex; flex-direction: column;
+    transition: box-shadow 0.18s, transform 0.18s;
+    overflow: hidden;
+}
+.intel-card:hover { box-shadow: 0 8px 28px rgba(6,41,82,0.13); transform: translateY(-2px); }
+
+.ic-head {
+    background: linear-gradient(135deg, var(--navy) 0%, #0c3f7b 100%);
+    color: #fff;
+    padding: 1rem 1.1rem 0.85rem;
+    display: flex; align-items: center; gap: 0.65rem;
+}
+.ic-icon {
+    width: 36px; height: 36px; flex-shrink: 0;
+    background: rgba(255,255,255,0.12);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.15rem;
+}
+.ic-head-text { flex: 1; overflow: hidden; }
+.ic-title { font-size: 0.95rem; font-weight: 700; margin: 0; line-height: 1.3; }
+.ic-subtitle { font-size: 0.72rem; color: rgba(255,255,255,0.62); margin: 0; }
+
+.ic-body {
+    padding: 1rem 1.1rem;
+    flex: 1;
+    display: flex; flex-direction: column; gap: 0.65rem;
+}
+.ic-desc { font-size: 0.84rem; color: #4a5568; margin: 0; line-height: 1.5; }
+
+/* Input + run row */
+.ic-input-row {
+    display: flex; gap: 0.5rem;
+}
+.ic-input {
+    flex: 1;
+    border: 1.5px solid #c8d8ef;
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    color: #1a1f2b;
+    background: #f8fafd;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    outline: none;
+}
+.ic-input:focus {
+    border-color: var(--navy);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(6,41,82,0.1);
+}
+.ic-run-btn {
+    padding: 0.5rem 1rem;
+    background: var(--navy); color: #fff;
+    border: none; border-radius: 8px;
+    font-size: 0.82rem; font-weight: 700;
+    cursor: pointer; white-space: nowrap;
+    transition: background 0.15s;
+}
+.ic-run-btn:hover { background: #0f4687; }
+
+/* Redirect card styling */
+.intel-card.redirect-card { cursor: pointer; }
+.intel-card.redirect-card .ic-body { justify-content: center; align-items: center; text-align: center; }
+.redirect-open-btn {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    padding: 0.55rem 1.4rem;
+    background: rgba(6,41,82,0.07); color: var(--navy);
+    border: 1.5px solid #c0d4ef; border-radius: 8px;
+    font-size: 0.84rem; font-weight: 700;
+    text-decoration: none;
+    transition: background 0.15s, border-color 0.15s;
+    margin-top: 0.25rem;
+}
+.redirect-open-btn:hover { background: var(--navy); color: #fff; border-color: var(--navy); }
+
+/* ─── Card footer ──────────────────────────────────── */
+.ic-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.65rem 1.1rem;
+    border-top: 1px solid #edf2fb;
+    background: #f8fafd;
+    gap: 0.5rem;
+}
+.ic-tools-used {
+    font-size: 0.72rem; color: #6b7a99;
+    display: flex; align-items: center; gap: 0.35rem;
+    overflow: hidden;
+}
+.ic-tools-used i { font-size: 0.78rem; flex-shrink: 0; }
+.ic-tools-pill {
+    display: inline-block;
+    background: #e8f0fa; color: #2d4f8a;
+    border-radius: 4px; padding: 0.05rem 0.45rem;
+    font-size: 0.68rem; font-weight: 600;
+    white-space: nowrap;
+}
+.ic-change-tools-btn {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    padding: 0.3rem 0.75rem;
+    background: none; color: #62748e;
+    border: 1px solid #c8d8ef; border-radius: 6px;
+    font-size: 0.72rem; font-weight: 600;
+    cursor: pointer; white-space: nowrap;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    flex-shrink: 0;
+}
+.ic-change-tools-btn:hover { background: var(--navy); color: #fff; border-color: var(--navy); }
+
+/* ─── Tool selection drawer ────────────────────────── */
+.drawer-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(4,29,57,0.35);
+    z-index: 1200;
+    backdrop-filter: blur(2px);
+}
+.drawer-overlay.open { display: block; }
+
+.tool-drawer {
+    position: fixed;
+    top: 0; right: -380px; bottom: 0;
+    width: 360px;
+    background: #fff;
+    border-left: 1px solid #dce6f5;
+    box-shadow: -8px 0 32px rgba(6,41,82,0.15);
+    z-index: 1300;
+    display: flex; flex-direction: column;
+    transition: right 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.tool-drawer.open { right: 0; }
+
+.drawer-head {
+    background: linear-gradient(135deg, var(--navy), #0c3f7b);
+    color: #fff;
+    padding: 1.1rem 1.25rem;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+}
+.drawer-head-title { font-size: 0.95rem; font-weight: 700; margin: 0; }
+.drawer-head-sub { font-size: 0.72rem; color: rgba(255,255,255,0.6); margin: 0.1rem 0 0; }
+.drawer-close {
+    background: rgba(255,255,255,0.12); border: none;
+    color: #fff; width: 30px; height: 30px;
+    border-radius: 6px; cursor: pointer; font-size: 1rem;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s;
+}
+.drawer-close:hover { background: rgba(255,255,255,0.22); }
+
+.drawer-body {
+    flex: 1; overflow-y: auto;
+    padding: 1.25rem;
+}
+.drawer-tool-item {
+    display: flex; align-items: flex-start; gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    border: 1.5px solid #e2eaf5;
+    border-radius: 10px;
+    margin-bottom: 0.6rem;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+}
+.drawer-tool-item:hover { background: #f0f6ff; border-color: #b0caef; }
+.drawer-tool-item.selected { background: #edf4ff; border-color: var(--navy); }
+.drawer-tool-item input[type=checkbox] { margin-top: 2px; accent-color: var(--navy); width: 16px; height: 16px; flex-shrink: 0; cursor: pointer; }
+.drawer-tool-label { font-size: 0.86rem; font-weight: 600; color: #1a2f4a; margin: 0; }
+.drawer-tool-desc { font-size: 0.75rem; color: #6b7a99; margin: 0.15rem 0 0; line-height: 1.4; }
+
+.drawer-foot {
+    padding: 1rem 1.25rem;
+    border-top: 1px solid #edf2fb;
+    background: #f8fafd;
+    display: flex; gap: 0.6rem;
+    flex-shrink: 0;
+}
+.drawer-run-btn {
+    flex: 1; padding: 0.65rem;
+    background: var(--navy); color: #fff;
+    border: none; border-radius: 8px;
+    font-size: 0.88rem; font-weight: 700;
+    cursor: pointer; transition: background 0.15s;
+}
+.drawer-run-btn:hover { background: #0f4687; }
+.drawer-cancel-btn {
+    padding: 0.65rem 1rem;
+    background: none; color: #6b7a99;
+    border: 1.5px solid #c8d8ef; border-radius: 8px;
+    font-size: 0.88rem; font-weight: 600;
+    cursor: pointer; transition: background 0.15s;
+}
+.drawer-cancel-btn:hover { background: #f0f4fa; }
+
+/* ─── Quick Investigation Scan ─────────────────── */
+.qs-wrap { margin-bottom: 2rem; }
+.qs-card { background:#fff; border:1px solid #dce6f5; border-radius:14px; box-shadow:0 2px 12px rgba(6,41,82,0.07); overflow:hidden; margin-bottom:1rem; }
+.qs-head { background:linear-gradient(135deg,var(--navy) 0%,#0c3f7b 100%); color:#fff; padding:0.85rem 1.25rem; display:flex; align-items:center; gap:1rem; flex-wrap:wrap; }
+.qs-head-title { font-size:0.95rem; font-weight:700; margin:0; white-space:nowrap; }
+.qs-head-sub { font-size:0.78rem; color:rgba(255,255,255,0.65); margin:0; }
+.qs-body { padding:1rem 1.25rem; }
+.qs-inputs { display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:0.65rem; align-items:end; }
+@media(max-width:1000px) { .qs-inputs { grid-template-columns:1fr 1fr; } }
+@media(max-width:600px)  { .qs-inputs { grid-template-columns:1fr; } }
+.qs-field label { font-size:0.72rem; font-weight:700; color:#6b7a99; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.3rem; display:block; }
+.qs-input { width:100%; border:1.5px solid #c8d8ef; border-radius:8px; padding:0.55rem 0.85rem; font-size:0.88rem; background:#f8fafd; color:#1a1f2b; outline:none; transition:border-color .15s,box-shadow .15s; box-sizing:border-box; }
+.qs-input:focus { border-color:var(--navy); background:#fff; box-shadow:0 0 0 3px rgba(6,41,82,0.1); }
+.qs-run-btn { padding:0.55rem 1.4rem; background:var(--navy); color:#fff; border:none; border-radius:8px; font-size:0.9rem; font-weight:700; cursor:pointer; white-space:nowrap; transition:background .15s; }
+.qs-run-btn:hover { background:#0f4687; }
+.qs-run-btn:disabled { background:#8a9bbf; cursor:not-allowed; }
+/* Quick results */
+.qsr-section { background:#fff; border:1px solid #dce6f5; border-radius:12px; overflow:hidden; margin-bottom:0.9rem; box-shadow:0 1px 6px rgba(6,41,82,0.05); }
+.qsr-head { background:linear-gradient(135deg,var(--navy) 0%,#0c3f7b 100%); color:#fff; padding:0.7rem 1rem; display:flex; align-items:center; justify-content:space-between; gap:0.5rem; }
+.qsr-title { font-size:0.85rem; font-weight:700; margin:0; }
+.qsr-body { padding:0.85rem 1rem; }
+.qsr-progress { height:4px; background:#e8f0fa; border-radius:2px; overflow:hidden; margin-bottom:0.6rem; }
+.qsr-progress-bar { height:100%; background:var(--navy); border-radius:2px; transition:width .3s; }
+.qsr-table { width:100%; border-collapse:collapse; font-size:0.8rem; }
+.qsr-table th { background:#f0f5fc; color:#2d4f8a; font-weight:700; font-size:0.7rem; text-transform:uppercase; letter-spacing:0.05em; padding:0.45rem 0.7rem; border-bottom:1px solid #dce6f5; text-align:left; }
+.qsr-table td { padding:0.38rem 0.7rem; border-bottom:1px solid #f0f4fa; color:#1a2f4a; vertical-align:middle; }
+.qsr-table tr:last-child td { border-bottom:none; }
+.qsr-table tr { animation:qsFadeIn .2s ease; }
+@keyframes qsFadeIn { from{opacity:0;transform:translateY(-3px)} to{opacity:1;transform:none} }
+.qsr-badge-found { display:inline-block; background:#d1fae5; color:#065f46; border-radius:4px; padding:.1rem .45rem; font-size:.68rem; font-weight:700; }
+.qsr-kv-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:.5rem; margin-bottom:.7rem; }
+.qsr-kv-item { background:#f8fafd; border:1px solid #dce6f5; border-radius:7px; padding:.45rem .7rem; }
+.qsr-kv-label { font-size:.65rem; font-weight:700; color:#6b7a99; text-transform:uppercase; letter-spacing:.05em; margin-bottom:.1rem; }
+.qsr-kv-value { font-size:.82rem; font-weight:600; color:#1a1f2b; }
+.qsr-pivot-row { display:flex; flex-wrap:wrap; gap:.4rem; }
+.qsr-pivot-btn { display:inline-flex; align-items:center; gap:.3rem; padding:.32rem .75rem; border:none; border-radius:6px; font-size:.74rem; font-weight:700; color:#fff; cursor:pointer; text-decoration:none; transition:opacity .15s; }
+.qsr-pivot-btn:hover { opacity:.86; color:#fff; }
+.qs-dl-bar { display:flex; justify-content:flex-end; margin-bottom:1rem; }
+.qs-dl-btn { display:inline-flex; align-items:center; gap:.45rem; padding:.6rem 1.4rem; background:var(--navy); color:#fff; border:none; border-radius:8px; font-size:.88rem; font-weight:700; cursor:pointer; transition:background .15s; }
+.qs-dl-btn:hover { background:#0f4687; }
+{% endblock %}
+
+{% block content %}
+<div class="dash-page">
+    <div class="dash-header">
+        <h1><i class="bi bi-shield-fill-check me-2" style="color:var(--khaki);"></i>Intelligence Operations Dashboard</h1>
+        <p>Select an intelligence module or enter a target below to begin your investigation.</p>
+    </div>
+
+    <!-- ── QUICK INVESTIGATION SCAN ───────────────── -->
+    <div class="qs-wrap" id="qs-wrap">
+        <div class="qs-card">
+            <div class="qs-head">
+                <span class="qs-head-title"><i class="bi bi-lightning-fill me-2" style="color:var(--khaki);"></i>Quick Investigation Scan</span>
+                <span class="qs-head-sub">Enter any combination — results appear inline below. No redirect.</span>
+            </div>
+            <div class="qs-body">
+                <div class="qs-inputs">
+                    <div class="qs-field">
+                        <label>Email Address</label>
+                        <input class="qs-input" type="email" id="qs-email" placeholder="target@example.com" autocomplete="off">
+                    </div>
+                    <div class="qs-field">
+                        <label>Username</label>
+                        <input class="qs-input" type="text" id="qs-username" placeholder="target_username" autocomplete="off">
+                    </div>
+                    <div class="qs-field">
+                        <label>Phone Number</label>
+                        <input class="qs-input" type="text" id="qs-phone" placeholder="+91 98765 43210" autocomplete="off">
+                    </div>
+                    <div>
+                        <button class="qs-run-btn" id="qs-run-btn" onclick="runQuickScan()">
+                            <i class="bi bi-play-fill me-1"></i>Run Scan
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results wrapper (hidden until scan runs) -->
+        <div id="qs-results-wrap" style="display:none;">
+
+            <!-- Email results -->
+            <div id="qsr-email-wrap" style="display:none;">
+                <div class="qsr-section">
+                    <div class="qsr-head">
+                        <span class="qsr-title"><i class="bi bi-envelope-check me-1"></i>Holehe — Email Footprint</span>
+                        <span class="badge bg-secondary" id="qsr-holehe-status">Loading…</span>
+                    </div>
+                    <div class="qsr-body">
+                        <div id="qsr-holehe-loading"><small class="text-muted"><span class="spinner-border spinner-border-sm me-1"></span>Scanning 123 platforms…</small></div>
+                        <table class="qsr-table" id="qsr-holehe-table" style="display:none;">
+                            <thead><tr><th style="width:60%">Site</th><th style="width:40%">Status</th></tr></thead>
+                            <tbody id="qsr-holehe-tbody"></tbody>
+                        </table>
+                        <div id="qsr-holehe-empty" class="text-muted" style="display:none;font-size:.82rem;">No public registrations found.</div>
+                    </div>
+                </div>
+                <div class="qsr-section">
+                    <div class="qsr-head">
+                        <span class="qsr-title"><i class="bi bi-broadcast me-1"></i>User-Scanner — Email Mode</span>
+                        <span class="badge bg-secondary" id="qsr-use-status">Loading…</span>
+                    </div>
+                    <div class="qsr-body">
+                        <div class="qsr-progress"><div class="qsr-progress-bar" id="qsr-use-pb" style="width:0%"></div></div>
+                        <div id="qsr-use-loading"><small class="text-muted"><span class="spinner-border spinner-border-sm me-1"></span>Scanning 195+ platforms…</small></div>
+                        <table class="qsr-table" id="qsr-use-table" style="display:none;">
+                            <thead><tr><th style="width:40%">Platform</th><th style="width:30%">Category</th><th style="width:30%">Status</th></tr></thead>
+                            <tbody id="qsr-use-tbody"></tbody>
+                        </table>
+                        <div id="qsr-use-empty" class="text-muted" style="display:none;font-size:.82rem;">No results found.</div>
+                    </div>
+                </div>
+                <div class="qsr-section">
+                    <div class="qsr-head">
+                        <span class="qsr-title"><i class="bi bi-shield-exclamation me-1"></i>Disposable Email Risk</span>
+                        <span class="badge bg-secondary" id="qsr-disp-status">Loading…</span>
+                    </div>
+                    <div class="qsr-body" id="qsr-disp-body">
+                        <small class="text-muted"><span class="spinner-border spinner-border-sm me-1"></span>Checking domain…</small>
+                    </div>
+                </div>
+                <div class="qsr-section">
+                    <div class="qsr-head">
+                        <span class="qsr-title"><i class="bi bi-link-45deg me-1"></i>Breach &amp; Intel Pivots</span>
+                    </div>
+                    <div class="qsr-body" id="qsr-pivots-body">
+                        <small class="text-muted"><span class="spinner-border spinner-border-sm me-1"></span>Building pivot links…</small>
+                    </div>
+                </div>
+                <div class="qsr-section" id="qsr-bte-section" style="display:none;">
+                    <div class="qsr-head" style="background:linear-gradient(135deg,#1b4f72 0%,#2874a6 100%);">
+                        <span class="qsr-title"><i class="bi bi-person-badge me-1"></i>BehindTheEmail Intelligence</span>
+                        <span class="badge bg-secondary" id="qsr-bte-status">Loading…</span>
+                    </div>
+                    <div class="qsr-body" id="qsr-bte-body">
+                        <small class="text-muted"><span class="spinner-border spinner-border-sm me-1"></span>Querying BehindTheEmail…</small>
+                    </div>
+                </div>
+            </div><!-- /qsr-email-wrap -->
+
+            <!-- Username results -->
+            <div id="qsr-username-wrap" style="display:none;">
+                <div class="qsr-section">
+                    <div class="qsr-head">
+                        <span class="qsr-title"><i class="bi bi-person-fill-check me-1"></i>Sherlock — Username Deep Scan (~300 sites)</span>
+                        <span class="badge bg-secondary" id="qsr-sherlock-status">Loading…</span>
+                    </div>
+                    <div class="qsr-body">
+                        <div class="qsr-progress"><div class="qsr-progress-bar" id="qsr-sherlock-pb" style="width:0%"></div></div>
+                        <div id="qsr-sherlock-loading"><small class="text-muted"><span class="spinner-border spinner-border-sm me-1"></span>Scanning ~300 sites…</small></div>
+                        <table class="qsr-table" id="qsr-sherlock-table" style="display:none;">
+                            <thead><tr><th style="width:30%">Platform</th><th style="width:70%">Profile URL</th></tr></thead>
+                            <tbody id="qsr-sherlock-tbody"></tbody>
+                        </table>
+                        <div id="qsr-sherlock-empty" class="text-muted" style="display:none;font-size:.82rem;">No profiles found.</div>
+                    </div>
+                </div>
+                <div class="qsr-section">
+                    <div class="qsr-head">
+                        <span class="qsr-title"><i class="bi bi-person-fill-check me-1"></i>Maigret — Username Deep Scan (~500 sites)</span>
+                        <span class="badge bg-secondary" id="qsr-maigret-status">Loading…</span>
+                    </div>
+                    <div class="qsr-body">
+                        <div class="qsr-progress"><div class="qsr-progress-bar" id="qsr-maigret-pb" style="width:0%"></div></div>
+                        <div id="qsr-maigret-loading"><small class="text-muted"><span class="spinner-border spinner-border-sm me-1"></span>Scanning ~500 sites…</small></div>
+                        <table class="qsr-table" id="qsr-maigret-table" style="display:none;">
+                            <thead><tr><th style="width:30%">Platform</th><th style="width:70%">Profile URL</th></tr></thead>
+                            <tbody id="qsr-maigret-tbody"></tbody>
+                        </table>
+                        <div id="qsr-maigret-empty" class="text-muted" style="display:none;font-size:.82rem;">No profiles found.</div>
+                    </div>
+                </div>
+                <div class="qsr-section">
+                    <div class="qsr-head">
+                        <span class="qsr-title"><i class="bi bi-broadcast me-1"></i>User-Scanner — Username Mode</span>
+                        <span class="badge bg-secondary" id="qsr-usu-status">Loading…</span>
+                    </div>
+                    <div class="qsr-body">
+                        <div class="qsr-progress"><div class="qsr-progress-bar" id="qsr-usu-pb" style="width:0%"></div></div>
+                        <div id="qsr-usu-loading"><small class="text-muted"><span class="spinner-border spinner-border-sm me-1"></span>Scanning 195+ platforms…</small></div>
+                        <table class="qsr-table" id="qsr-usu-table" style="display:none;">
+                            <thead><tr><th style="width:40%">Platform</th><th style="width:30%">Category</th><th style="width:30%">Status</th></tr></thead>
+                            <tbody id="qsr-usu-tbody"></tbody>
+                        </table>
+                        <div id="qsr-usu-empty" class="text-muted" style="display:none;font-size:.82rem;">No results found.</div>
+                    </div>
+                </div>
+            </div><!-- /qsr-username-wrap -->
+
+            <!-- Phone results -->
+            <div id="qsr-phone-wrap" style="display:none;">
+                <div class="qsr-section">
+                    <div class="qsr-head">
+                        <span class="qsr-title"><i class="bi bi-telephone-fill me-1"></i>Phone Intelligence</span>
+                        <span class="badge bg-secondary" id="qsr-phone-status">Loading…</span>
+                    </div>
+                    <div class="qsr-body" id="qsr-phone-body">
+                        <small class="text-muted"><span class="spinner-border spinner-border-sm me-1"></span>Analyzing number…</small>
+                    </div>
+                </div>
+            </div><!-- /qsr-phone-wrap -->
+
+            <!-- Download bar -->
+            <div class="qs-dl-bar" id="qs-dl-bar" style="display:none;">
+                <button class="qs-dl-btn" onclick="downloadQsReport()">
+                    <i class="bi bi-file-earmark-pdf-fill me-1"></i>Download PDF Report
+                </button>
+            </div>
+
+        </div><!-- /qs-results-wrap -->
+    </div><!-- /qs-wrap -->
+
+    <div class="intel-grid">
+
+        <!-- ── EMAIL INTEL ───────────────────────────── -->
+        <div class="intel-card">
+            <div class="ic-head">
+                <div class="ic-icon"><i class="bi bi-envelope-fill"></i></div>
+                <div class="ic-head-text">
+                    <p class="ic-title">Email Intelligence</p>
+                    <p class="ic-subtitle">Footprint · Breaches · Disposable · Pivots</p>
+                </div>
+            </div>
+            <div class="ic-body">
+                <form id="email-quick-form" action="/email-intel" method="GET" style="display:contents">
+                    <div class="ic-input-row">
+                        <input class="ic-input" type="email" name="email" id="email-quick-input"
+                               placeholder="target@example.com" autocomplete="off">
+                        <button class="ic-run-btn" type="submit"><i class="bi bi-play-fill"></i> Run</button>
+                    </div>
+                </form>
+                <a href="/email-intel" class="redirect-open-btn" style="font-size:0.78rem;padding:0.35rem 0.9rem;align-self:flex-start;margin-top:0;">
+                    <i class="bi bi-arrow-up-right-square"></i> Full Investigation Page
+                </a>
+            </div>
+            <div class="ic-footer">
+                <div class="ic-tools-used">
+                    <i class="bi bi-tools"></i>
+                    <span class="ic-tools-pill">Holehe</span>
+                    <span class="ic-tools-pill">User-Scanner</span>
+                    <span class="ic-tools-pill">HIBP</span>
+                    <span class="ic-tools-pill">+1</span>
+                </div>
+                <button class="ic-change-tools-btn" onclick="openDrawer('email')">
+                    <i class="bi bi-sliders"></i> Change Tools
+                </button>
+            </div>
+        </div>
+
+        <!-- ── USERNAME INTEL ─────────────────────────── -->
+        <div class="intel-card">
+            <div class="ic-head">
+                <div class="ic-icon"><i class="bi bi-person-fill"></i></div>
+                <div class="ic-head-text">
+                    <p class="ic-title">Username Intelligence</p>
+                    <p class="ic-subtitle">Sherlock · Maigret · User-Scanner · Deep Scan</p>
+                </div>
+            </div>
+            <div class="ic-body">
+                <form id="username-quick-form" action="/username-intel" method="GET" style="display:contents">
+                    <div class="ic-input-row">
+                        <input class="ic-input" type="text" name="username" id="username-quick-input"
+                               placeholder="target_username" autocomplete="off">
+                        <button class="ic-run-btn" type="submit"><i class="bi bi-play-fill"></i> Run</button>
+                    </div>
+                </form>
+                <a href="/username-intel" class="redirect-open-btn" style="font-size:0.78rem;padding:0.35rem 0.9rem;align-self:flex-start;margin-top:0;">
+                    <i class="bi bi-arrow-up-right-square"></i> Full Investigation Page
+                </a>
+            </div>
+            <div class="ic-footer">
+                <div class="ic-tools-used">
+                    <i class="bi bi-tools"></i>
+                    <span class="ic-tools-pill">Sherlock</span>
+                    <span class="ic-tools-pill">Maigret</span>
+                    <span class="ic-tools-pill">User-Scanner</span>
+                    <span class="ic-tools-pill">+1</span>
+                </div>
+                <button class="ic-change-tools-btn" onclick="openDrawer('username')">
+                    <i class="bi bi-sliders"></i> Change Tools
+                </button>
+            </div>
+        </div>
+
+        <!-- ── PHONE INTEL ────────────────────────────── -->
+        <div class="intel-card">
+            <div class="ic-head">
+                <div class="ic-icon"><i class="bi bi-telephone-fill"></i></div>
+                <div class="ic-head-text">
+                    <p class="ic-title">Phone Intelligence</p>
+                    <p class="ic-subtitle">Metadata · Carrier · Region · Search Pivots</p>
+                </div>
+            </div>
+            <div class="ic-body">
+                <form id="phone-quick-form" action="/phone-intel" method="GET" style="display:contents">
+                    <div class="ic-input-row">
+                        <input class="ic-input" type="text" name="phone" id="phone-quick-input"
+                               placeholder="+91 98765 43210" autocomplete="off">
+                        <button class="ic-run-btn" type="submit"><i class="bi bi-play-fill"></i> Run</button>
+                    </div>
+                </form>
+                <a href="/phone-intel" class="redirect-open-btn" style="font-size:0.78rem;padding:0.35rem 0.9rem;align-self:flex-start;margin-top:0;">
+                    <i class="bi bi-arrow-up-right-square"></i> Full Investigation Page
+                </a>
+            </div>
+            <div class="ic-footer">
+                <div class="ic-tools-used">
+                    <i class="bi bi-tools"></i>
+                    <span class="ic-tools-pill">phonenumbers</span>
+                    <span class="ic-tools-pill">Truecaller Pivot</span>
+                    <span class="ic-tools-pill">Sync.me Pivot</span>
+                </div>
+                <button class="ic-change-tools-btn" onclick="openDrawer('phone')">
+                    <i class="bi bi-sliders"></i> Change Tools
+                </button>
+            </div>
+        </div>
+
+        <!-- ── INSTAGRAM PRIVSNIFFER ───────────────────── -->
+        <div class="intel-card redirect-card" onclick="window.location='/instagram-sniffer'">
+            <div class="ic-head" style="background:linear-gradient(135deg,#833ab4 0%,#e1306c 55%,#f77737 100%);position:relative;overflow:hidden;">
+                <div style="position:absolute;inset:0;background:radial-gradient(circle at 80% 50%,rgba(255,255,255,0.08) 0%,transparent 60%);pointer-events:none;"></div>
+                <div class="ic-icon" style="background:rgba(255,255,255,0.18);box-shadow:0 0 14px rgba(255,255,255,0.15);">
+                    <i class="bi bi-instagram"></i>
+                </div>
+                <div class="ic-head-text">
+                    <p class="ic-title">Instagram Sniffer</p>
+                    <p class="ic-subtitle">Account Intelligence</p>
+                </div>
+            </div>
+            <div class="ic-body">
+                <p class="ic-desc">Analyze Instagram private account metadata and intelligence. Discover collaborated posts and exposed relationships via Instagram's internal profile API.</p>
+                <a href="/instagram-sniffer" class="redirect-open-btn" onclick="event.stopPropagation()"
+                   style="border-color:#f9a8d4;color:#be185d;">
+                    <i class="bi bi-arrow-up-right-square"></i> Open Instagram Sniffer
+                </a>
+            </div>
+            <div class="ic-footer" style="justify-content:flex-end;">
+                <div class="ic-tools-used">
+                    <i class="bi bi-tools"></i>
+                    <span class="ic-tools-pill" style="background:#fdf2f8;color:#9d174d;">Instagram API</span>
+                    <span class="ic-tools-pill" style="background:#fdf2f8;color:#9d174d;">curl_cffi</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── IMAGE INTEL ─────────────────────────────── -->
+        <div class="intel-card redirect-card" onclick="window.location='/image-intel/'">
+            <div class="ic-head" style="background:linear-gradient(135deg,#1d4a3b,#2d7a5a);">
+                <div class="ic-icon"><i class="bi bi-image-fill"></i></div>
+                <div class="ic-head-text">
+                    <p class="ic-title">Image Intelligence</p>
+                    <p class="ic-subtitle">EXIF Metadata · GPS · Camera Forensics</p>
+                </div>
+            </div>
+            <div class="ic-body">
+                <p class="ic-desc">Extract EXIF metadata, GPS coordinates, camera information, and timestamps from images for forensic investigation.</p>
+                <a href="/image-intel/" class="redirect-open-btn" onclick="event.stopPropagation()">
+                    <i class="bi bi-arrow-up-right-square"></i> Open Image Intel
+                </a>
+            </div>
+            <div class="ic-footer" style="justify-content:flex-end;">
+                <div class="ic-tools-used">
+                    <i class="bi bi-tools"></i>
+                    <span class="ic-tools-pill">Pillow/PIL</span>
+                    <span class="ic-tools-pill">EXIF Extract</span>
+                    <span class="ic-tools-pill">GPS Decode</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── INFRA INTEL ─────────────────────────────── -->
+        <div class="intel-card redirect-card" onclick="window.location='/infra-intel'">
+            <div class="ic-head" style="background:linear-gradient(135deg,#4a1d1d,#8a2d2d);">
+                <div class="ic-icon"><i class="bi bi-server"></i></div>
+                <div class="ic-head-text">
+                    <p class="ic-title">Infrastructure Intel</p>
+                    <p class="ic-subtitle">Shodan · Ports · CVEs · SSL · URLScan</p>
+                </div>
+            </div>
+            <div class="ic-body">
+                <p class="ic-desc">Investigate IP addresses, domains, and infrastructure using Shodan. Discover open ports, services, CVEs, and SSL certificates.</p>
+                <a href="/infra-intel" class="redirect-open-btn" onclick="event.stopPropagation()">
+                    <i class="bi bi-arrow-up-right-square"></i> Open Infra Intel
+                </a>
+            </div>
+            <div class="ic-footer" style="justify-content:flex-end;">
+                <div class="ic-tools-used">
+                    <i class="bi bi-tools"></i>
+                    <span class="ic-tools-pill">Shodan</span>
+                    <span class="ic-tools-pill">URLScan.io</span>
+                    <span class="ic-tools-pill">NSLookup</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── AI OR NOT (centered, last row) ────────── -->
+        <div style="grid-column: 2; justify-self: stretch;">
+        <div class="intel-card redirect-card" onclick="window.location='/ai-or-not'" style="height:100%;">
+            <div class="ic-head" style="background:linear-gradient(135deg,#1e1b4b 0%,#3730a3 60%,#6d28d9 100%);position:relative;overflow:hidden;">
+                <div style="position:absolute;inset:0;background:radial-gradient(circle at 75% 40%,rgba(255,255,255,0.07) 0%,transparent 55%);pointer-events:none;"></div>
+                <div class="ic-icon" style="background:rgba(255,255,255,0.14);box-shadow:0 0 12px rgba(109,40,217,0.4);">
+                    <i class="bi bi-robot"></i>
+                </div>
+                <div class="ic-head-text">
+                    <p class="ic-title">AI OR NOT</p>
+                    <p class="ic-subtitle">Deepfake &amp; Synthetic Media Detection</p>
+                </div>
+            </div>
+            <div class="ic-body">
+                <p class="ic-desc">Detect AI-generated images, videos, and audio with forensic confidence scoring. Identify deepfakes and synthetic media.</p>
+                <a href="/ai-or-not" class="redirect-open-btn" onclick="event.stopPropagation()"
+                   style="border-color:#c4b5fd;color:#5b21b6;">
+                    <i class="bi bi-arrow-up-right-square"></i> Open AI OR NOT
+                </a>
+            </div>
+            <div class="ic-footer" style="justify-content:flex-end;">
+                <div class="ic-tools-used">
+                    <i class="bi bi-tools"></i>
+                    <span class="ic-tools-pill" style="background:#ede9fe;color:#5b21b6;">AI OR NOT API</span>
+                    <span class="ic-tools-pill" style="background:#ede9fe;color:#5b21b6;">Deepfake Detect</span>
+                </div>
+            </div>
+        </div>
+        </div>
+
+    </div><!-- /intel-grid -->
+</div><!-- /dash-page -->
+
+<!-- ─── DRAWER OVERLAY ──────────────────────────────────── -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
+
+<!-- ─── TOOL SELECTION DRAWER ──────────────────────────── -->
+<div class="tool-drawer" id="tool-drawer">
+    <div class="drawer-head">
+        <div>
+            <p class="drawer-head-title" id="drawer-title">Select Tools</p>
+            <p class="drawer-head-sub" id="drawer-sub">Choose which tools to run for this scan</p>
+        </div>
+        <button class="drawer-close" onclick="closeDrawer()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="drawer-body" id="drawer-body">
+        <!-- populated by JS -->
+    </div>
+    <div class="drawer-foot">
+        <button class="drawer-cancel-btn" onclick="closeDrawer()">Cancel</button>
+        <button class="drawer-run-btn" id="drawer-run-btn" onclick="runWithSelectedTools()">
+            <i class="bi bi-play-fill"></i> Run Scan with Selected Tools
+        </button>
+    </div>
+</div>
+
+<script>
+    const TOOL_DEFS = {
+        email: {
+            title: 'Email Intelligence',
+            sub:   'Choose email analysis tools to run',
+            target: '/email-intel',
+            inputId: 'email-quick-input',
+            tools: [
+                { id: 'holehe',          label: 'Holehe Email Footprint',           desc: '123 social/commerce/forum platform checks' },
+                { id: 'user_scanner',    label: 'User-Scanner OSINT Engine',         desc: 'Real-time scan across 195+ platforms' },
+                { id: 'disposable',      label: 'Disposable Email Risk Check',       desc: 'Detect throwaway and temporary email domains' },
+                { id: 'emailpivots',     label: 'Email Breach & Intel Pivots',       desc: 'HIBP, DeHashed, IntelX, Google/Bing dork links' },
+                { id: 'behindtheemail',  label: 'BehindTheEmail Intelligence',       desc: 'Social profiles, platform accounts & breach risk indicators' },
+            ]
+        },
+        username: {
+            title: 'Username Intelligence',
+            sub:   'Choose username analysis tools to run',
+            target: '/username-intel',
+            inputId: 'username-quick-input',
+            tools: [
+                { id: 'sherlock',     label: 'Sherlock Deep Scan',               desc: '~300 sites — live streaming results' },
+                { id: 'maigret',      label: 'Maigret Deep Scan',                desc: '~500 sites — real-time streaming with profile data' },
+                { id: 'userdeep',     label: 'Combined Deep Scan',               desc: 'Sherlock + Maigret combined & deduplicated' },
+                { id: 'user_scanner', label: 'User-Scanner OSINT Engine',         desc: 'Streaming scan across 195+ platforms by category' },
+            ]
+        },
+        phone: {
+            title: 'Phone Intelligence',
+            sub:   'Phone number analysis (single built-in tool)',
+            target: '/phone-intel',
+            inputId: 'phone-quick-input',
+            tools: [
+                { id: 'phone', label: 'Phone Metadata & Pivots', desc: 'Carrier, region, format, Truecaller & Sync.me pivot links' },
+            ]
+        }
+    };
+
+    let _currentCategory = null;
+
+    function openDrawer(category) {
+        const def = TOOL_DEFS[category];
+        if (!def) return;
+        _currentCategory = category;
+
+        document.getElementById('drawer-title').textContent = def.title;
+        document.getElementById('drawer-sub').textContent   = def.sub;
+
+        const body = document.getElementById('drawer-body');
+        body.innerHTML = def.tools.map(t => `
+            <div class="drawer-tool-item" onclick="toggleTool(this)" data-tool-id="${t.id}">
+                <input type="checkbox" id="dtool-${t.id}">
+                <div>
+                    <p class="drawer-tool-label">${t.label}</p>
+                    <p class="drawer-tool-desc">${t.desc}</p>
+                </div>
+            </div>
+        `).join('');
+
+        document.getElementById('drawer-overlay').classList.add('open');
+        document.getElementById('tool-drawer').classList.add('open');
+    }
+
+    function closeDrawer() {
+        document.getElementById('drawer-overlay').classList.remove('open');
+        document.getElementById('tool-drawer').classList.remove('open');
+        _currentCategory = null;
+    }
+
+    function toggleTool(el) {
+        const cb = el.querySelector('input[type=checkbox]');
+        cb.checked = !cb.checked;
+        el.classList.toggle('selected', cb.checked);
+    }
+
+    /* ════════════════════════════════════════════════════
+       QUICK INVESTIGATION SCAN
+       ════════════════════════════════════════════════════ */
+    let _qsData = {};
+    let _qsActive = 0;
+    let _qsEs = { holehe: null, useEmail: null, sherlock: null, maigret: null, useUser: null, bte: null };
+
+    function _qsEsc(s) {
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function runQuickScan() {
+        const email    = document.getElementById('qs-email').value.trim();
+        const username = document.getElementById('qs-username').value.trim();
+        const phone    = document.getElementById('qs-phone').value.trim();
+
+        if (!email && !username && !phone) {
+            alert('Please enter at least one of: Email, Username, or Phone Number.');
+            return;
+        }
+
+        // Close any previous EventSources
+        Object.values(_qsEs).forEach(es => { if (es) es.close(); });
+        _qsEs = { holehe: null, useEmail: null, sherlock: null, maigret: null, useUser: null, bte: null };
+
+        _qsData = {
+            email, username, phone,
+            selected_tools: [],
+            holehe: [], sherlock_profiles: [], maigret_profiles: [],
+            userdeep_profiles: [], user_scanner_email: [], user_scanner_username: [],
+            disposable_result: null, phone_result: null, email_pivots_result: null
+        };
+        _qsActive = 0;
+
+        const btn = document.getElementById('qs-run-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Scanning…';
+
+        document.getElementById('qs-results-wrap').style.display = '';
+        document.getElementById('qs-dl-bar').style.display = 'none';
+
+        if (email) {
+            _qsData.selected_tools.push('holehe','user_scanner','disposable','emailpivots','behindtheemail');
+            document.getElementById('qsr-email-wrap').style.display = '';
+            _qsResetEl('qsr-holehe-loading','qsr-holehe-table','qsr-holehe-tbody','qsr-holehe-empty','qsr-holehe-status');
+            _qsResetEl('qsr-use-loading','qsr-use-table','qsr-use-tbody','qsr-use-empty','qsr-use-status');
+            document.getElementById('qsr-use-pb').style.width = '0%';
+            document.getElementById('qsr-disp-body').innerHTML = '<small class="text-muted"><span class="spinner-border spinner-border-sm me-1"></span>Checking domain…</small>';
+            document.getElementById('qsr-disp-status').textContent = 'Loading…'; document.getElementById('qsr-disp-status').className = 'badge bg-secondary';
+            document.getElementById('qsr-pivots-body').innerHTML = '<small class="text-muted"><span class="spinner-border spinner-border-sm me-1"></span>Building pivot links…</small>';
+            document.getElementById('qsr-bte-section').style.display = '';
+            document.getElementById('qsr-bte-body').innerHTML = '<small class="text-muted"><span class="spinner-border spinner-border-sm me-1"></span>Querying BehindTheEmail…</small>';
+            document.getElementById('qsr-bte-status').textContent = 'Loading…'; document.getElementById('qsr-bte-status').className = 'badge bg-secondary';
+            _qsActive += 5;
+            _qsStartHolehe(email);
+            _qsStartUsEmail(email);
+            _qsStartDisposable(email);
+            _qsStartPivots(email);
+            _qsStartBehindTheEmail(email);
+        } else {
+            document.getElementById('qsr-email-wrap').style.display = 'none';
+            document.getElementById('qsr-bte-section').style.display = 'none';
+        }
+
+        if (username) {
+            _qsData.selected_tools.push('sherlock','maigret','user_scanner');
+            document.getElementById('qsr-username-wrap').style.display = '';
+            _qsResetEl('qsr-sherlock-loading','qsr-sherlock-table','qsr-sherlock-tbody','qsr-sherlock-empty','qsr-sherlock-status');
+            _qsResetEl('qsr-maigret-loading','qsr-maigret-table','qsr-maigret-tbody','qsr-maigret-empty','qsr-maigret-status');
+            _qsResetEl('qsr-usu-loading','qsr-usu-table','qsr-usu-tbody','qsr-usu-empty','qsr-usu-status');
+            document.getElementById('qsr-sherlock-pb').style.width = '0%';
+            document.getElementById('qsr-maigret-pb').style.width = '0%';
+            document.getElementById('qsr-usu-pb').style.width = '0%';
+            _qsActive += 3;
+            _qsStartSherlock(username);
+            _qsStartMaigret(username);
+            _qsStartUsUser(username);
+        } else {
+            document.getElementById('qsr-username-wrap').style.display = 'none';
+        }
+
+        if (phone) {
+            _qsData.selected_tools.push('phone');
+            document.getElementById('qsr-phone-wrap').style.display = '';
+            document.getElementById('qsr-phone-body').innerHTML = '<small class="text-muted"><span class="spinner-border spinner-border-sm me-1"></span>Analyzing number…</small>';
+            document.getElementById('qsr-phone-status').textContent = 'Loading…'; document.getElementById('qsr-phone-status').className = 'badge bg-secondary';
+            _qsActive += 1;
+            _qsStartPhone(phone);
+        } else {
+            document.getElementById('qsr-phone-wrap').style.display = 'none';
+        }
+    }
+
+    function _qsResetEl(loadingId, tableId, tbodyId, emptyId, statusId) {
+        document.getElementById(loadingId).style.display = '';
+        document.getElementById(tableId).style.display = 'none';
+        document.getElementById(tbodyId).innerHTML = '';
+        document.getElementById(emptyId).style.display = 'none';
+        document.getElementById(statusId).textContent = 'Loading…';
+        document.getElementById(statusId).className = 'badge bg-secondary';
+    }
+
+    function _qsDone() {
+        _qsActive = Math.max(0, _qsActive - 1);
+        if (_qsActive === 0) {
+            const btn = document.getElementById('qs-run-btn');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i>Scan Again';
+            document.getElementById('qs-dl-bar').style.display = '';
+        }
+    }
+
+    /* ── Holehe ── */
+    function _qsStartHolehe(email) {
+        const es = new EventSource(`/api/stream/holehe?email=${encodeURIComponent(email)}`);
+        _qsEs.holehe = es;
+        const tbody = document.getElementById('qsr-holehe-tbody');
+        const table = document.getElementById('qsr-holehe-table');
+        const loading = document.getElementById('qsr-holehe-loading');
+        const status = document.getElementById('qsr-holehe-status');
+        let found = 0;
+
+        es.onmessage = function(e) {
+            let d; try { d = JSON.parse(e.data); } catch { return; }
+            if (d.type === 'result') {
+                found++;
+                _qsData.holehe.push(d.data);
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td class="fw-semibold">${_qsEsc(d.data.domain || d.data.name || '')}</td><td><span class="qsr-badge-found">✓ Registered</span></td>`;
+                tbody.appendChild(tr);
+                loading.style.display = 'none'; table.style.display = '';
+            } else if (d.type === 'complete') {
+                loading.style.display = 'none';
+                if (found === 0) document.getElementById('qsr-holehe-empty').style.display = '';
+                status.textContent = `${found} found`; status.className = found > 0 ? 'badge bg-success' : 'badge bg-secondary';
+                es.close(); _qsDone();
+            } else if (d.type === 'error') {
+                loading.style.display = 'none';
+                status.textContent = 'Error'; status.className = 'badge bg-danger';
+                es.close(); _qsDone();
+            }
+        };
+        es.onerror = function() { loading.style.display='none'; status.textContent='Error'; status.className='badge bg-danger'; es.close(); _qsDone(); };
+    }
+
+    /* ── User-Scanner Email ── */
+    function _qsStartUsEmail(email) {
+        const es = new EventSource(`/api/stream/scan?type=email&query=${encodeURIComponent(email)}`);
+        _qsEs.useEmail = es;
+        const tbody = document.getElementById('qsr-use-tbody');
+        const table = document.getElementById('qsr-use-table');
+        const loading = document.getElementById('qsr-use-loading');
+        const pb = document.getElementById('qsr-use-pb');
+        const status = document.getElementById('qsr-use-status');
+        let found = 0;
+
+        es.onmessage = function(e) {
+            let d; try { d = JSON.parse(e.data); } catch { return; }
+            if (d.type === 'result') {
+                const r = d.data || {};
+                if (r.found) {
+                    found++;
+                    _qsData.user_scanner_email.push({ platform: r.platform, url: r.url, category: r.category, status: r.status });
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `<td>${_qsEsc(r.platform||'')}</td><td>${_qsEsc(r.category||'')}</td><td><span class="qsr-badge-found">Found</span></td>`;
+                    tbody.appendChild(tr);
+                    loading.style.display = 'none'; table.style.display = '';
+                }
+                const chk = d.checked_count || 0;
+                pb.style.width = `${Math.min(100, (chk / 195) * 100)}%`;
+            } else if (d.type === 'progress') {
+                pb.style.width = `${Math.min(100, ((d.checked_count||0) / 195) * 100)}%`;
+            } else if (d.type === 'complete') {
+                pb.style.width = '100%'; loading.style.display = 'none';
+                if (found === 0) document.getElementById('qsr-use-empty').style.display = '';
+                status.textContent = `${found} found`; status.className = found > 0 ? 'badge bg-success' : 'badge bg-secondary';
+                es.close(); _qsDone();
+            } else if (d.type === 'error') {
+                loading.style.display = 'none'; status.textContent = 'Error'; status.className = 'badge bg-danger';
+                es.close(); _qsDone();
+            }
+        };
+        es.onerror = function() { loading.style.display='none'; status.textContent='Error'; status.className='badge bg-danger'; es.close(); _qsDone(); };
+    }
+
+    /* ── Disposable ── */
+    function _qsStartDisposable(email) {
+        fetch(`/api/results/disposable?email=${encodeURIComponent(email)}`)
+            .then(r => r.json())
+            .then(d => {
+                _qsData.disposable_result = d;
+                const isDisp = d.is_disposable;
+                const status = document.getElementById('qsr-disp-status');
+                document.getElementById('qsr-disp-body').innerHTML = `
+                    <div class="qsr-kv-grid">
+                        <div class="qsr-kv-item"><div class="qsr-kv-label">Domain</div><div class="qsr-kv-value">${_qsEsc(d.domain||'—')}</div></div>
+                        <div class="qsr-kv-item"><div class="qsr-kv-label">Risk Level</div><div class="qsr-kv-value"><span style="display:inline-block;background:${isDisp?'#fee2e2':'#d1fae5'};color:${isDisp?'#991b1b':'#065f46'};border-radius:4px;padding:.1rem .5rem;font-size:.72rem;font-weight:700;">${_qsEsc(d.risk_level||(isDisp?'High':'Low'))}</span></div></div>
+                    </div>`;
+                status.textContent = isDisp ? 'High Risk' : 'Low Risk';
+                status.className = isDisp ? 'badge bg-danger' : 'badge bg-success';
+                _qsDone();
+            })
+            .catch(() => {
+                document.getElementById('qsr-disp-body').innerHTML = '<small class="text-danger">Failed to check.</small>';
+                document.getElementById('qsr-disp-status').textContent = 'Error'; document.getElementById('qsr-disp-status').className = 'badge bg-danger';
+                _qsDone();
+            });
+    }
+
+    /* ── Pivots ── */
+    function _qsStartPivots(email) {
+        fetch(`/api/results/email-pivots?email=${encodeURIComponent(email)}`)
+            .then(r => r.json())
+            .then(d => {
+                _qsData.email_pivots_result = d;
+                const pivots = d.pivots || [];
+                const colors = ['#062952','#0d6e4f','#7c3aed','#b45309','#c2410c','#0e7490'];
+                document.getElementById('qsr-pivots-body').innerHTML = pivots.length
+                    ? `<div class="qsr-pivot-row">${pivots.map((p,i) => `<a href="${_qsEsc(p.url)}" target="_blank" class="qsr-pivot-btn" style="background:${colors[i%colors.length]};"><i class="bi bi-box-arrow-up-right"></i>${_qsEsc(p.name)}</a>`).join('')}</div>`
+                    : '<small class="text-muted">No pivot links generated.</small>';
+                _qsDone();
+            })
+            .catch(() => { document.getElementById('qsr-pivots-body').innerHTML = '<small class="text-danger">Failed to load.</small>'; _qsDone(); });
+    }
+
+    /* ── BehindTheEmail ── */
+    const _QS_BTE_PLAT = {
+        google:    { icon:'bi-google',    color:'#ea4335', label:'Google'    },
+        linkedIn:  { icon:'bi-linkedin',  color:'#0a66c2', label:'LinkedIn'  },
+        linkedin:  { icon:'bi-linkedin',  color:'#0a66c2', label:'LinkedIn'  },
+        github:    { icon:'bi-github',    color:'#24292e', label:'GitHub'    },
+        gitlab:    { icon:'bi-git',       color:'#fc6d26', label:'GitLab'    },
+        microsoft: { icon:'bi-microsoft', color:'#0078d4', label:'Microsoft' },
+        adobe:     { icon:'bi-brush',     color:'#ff0000', label:'Adobe'     },
+        chess:     { icon:'bi-grid-3x3',  color:'#769656', label:'Chess.com' },
+        duolingo:  { icon:'bi-translate', color:'#58cc02', label:'Duolingo'  },
+        gravatar:  { icon:'bi-person-circle', color:'#1e73be', label:'Gravatar' },
+    };
+
+    function _qsBteRender(profile) {
+        if (!profile || typeof profile !== 'object' || Object.keys(profile).length === 0) {
+            return '<small class="text-muted">No profile data returned.</small>';
+        }
+        const rows = [];
+        for (const [key, val] of Object.entries(profile)) {
+            if (!val || (typeof val === 'object' && Object.keys(val).length === 0)) continue;
+            const plat = _QS_BTE_PLAT[key] || { icon:'bi-circle-fill', color:'#6c757d', label: key.charAt(0).toUpperCase()+key.slice(1) };
+
+            // Extract headline fields
+            let username = '', profileUrl = '', avatarUrl = '';
+            if (typeof val === 'object' && !Array.isArray(val)) {
+                username = val.username || val.name || (val.basic && (val.basic.displayName || val.basic.name)) || '';
+                profileUrl = val.url || val.profileUrl || '';
+                avatarUrl  = val.avatar || val.avatarUrl || val.photo || (val.basic && val.basic.photo) || '';
+            }
+
+            let avatarHtml = avatarUrl
+                ? `<img src="${_qsEsc(avatarUrl)}" style="width:36px;height:36px;border-radius:8px;object-fit:cover;margin-right:.6rem;flex-shrink:0;" onerror="this.style.display='none'">`
+                : `<i class="bi ${_qsEsc(plat.icon)}" style="font-size:1.4rem;margin-right:.6rem;color:${_qsEsc(plat.color)};flex-shrink:0;"></i>`;
+
+            let usernameHtml = username ? `<span style="font-size:.78rem;color:#374151;margin-left:auto;background:#f1f5f9;border-radius:4px;padding:.1rem .4rem;">${_qsEsc(username)}</span>` : '';
+            let linkHtml = profileUrl ? `<a href="${_qsEsc(profileUrl)}" target="_blank" style="font-size:.7rem;color:var(--navy);opacity:.7;display:block;margin-top:.15rem;word-break:break-all;">${_qsEsc(profileUrl)}</a>` : '';
+
+            rows.push(`
+                <div style="display:flex;align-items:center;padding:.55rem .75rem;border-bottom:1px solid #f1f5f9;gap:.25rem;">
+                    ${avatarHtml}
+                    <div style="flex:1;min-width:0;">
+                        <div style="display:flex;align-items:center;gap:.4rem;">
+                            <span style="font-weight:600;font-size:.82rem;color:${_qsEsc(plat.color)};">${_qsEsc(plat.label)}</span>
+                            ${usernameHtml}
+                        </div>
+                        ${linkHtml}
+                    </div>
+                </div>`);
+        }
+        if (rows.length === 0) return '<small class="text-muted">No linked profiles found.</small>';
+        return `<div style="border:1px solid #e2e8f0;border-radius:6px;overflow:hidden;">${rows.join('')}</div>`;
+    }
+
+    function _qsStartBehindTheEmail(email) {
+        fetch(`/api/results/behindtheemail?email=${encodeURIComponent(email)}`)
+            .then(r => r.json())
+            .then(d => {
+                const statusEl = document.getElementById('qsr-bte-status');
+                const body = document.getElementById('qsr-bte-body');
+                if (d.error) {
+                    body.innerHTML = `<small class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>${_qsEsc(d.error)}</small>`;
+                    statusEl.textContent = 'Error'; statusEl.className = 'badge bg-danger';
+                } else {
+                    const profile = d.profile || {};
+                    const count = Object.keys(profile).filter(k => profile[k] && (typeof profile[k] !== 'object' || Object.keys(profile[k]).length > 0)).length;
+                    body.innerHTML = _qsBteRender(profile);
+                    statusEl.textContent = count > 0 ? `${count} platforms` : 'No data';
+                    statusEl.className = count > 0 ? 'badge bg-success' : 'badge bg-secondary';
+                }
+                _qsDone();
+            })
+            .catch(() => {
+                document.getElementById('qsr-bte-body').innerHTML = '<small class="text-danger">Failed to query BehindTheEmail.</small>';
+                document.getElementById('qsr-bte-status').textContent = 'Error';
+                document.getElementById('qsr-bte-status').className = 'badge bg-danger';
+                _qsDone();
+            });
+    }
+
+    /* ── Sherlock ── */
+    function _qsStartSherlock(username) {
+        const es = new EventSource(`/api/stream/sherlock?username=${encodeURIComponent(username)}`);
+        _qsEs.sherlock = es;
+        const tbody = document.getElementById('qsr-sherlock-tbody');
+        const table = document.getElementById('qsr-sherlock-table');
+        const loading = document.getElementById('qsr-sherlock-loading');
+        const pb = document.getElementById('qsr-sherlock-pb');
+        const status = document.getElementById('qsr-sherlock-status');
+        let found = 0, checked = 0;
+
+        es.onmessage = function(e) {
+            let d; try { d = JSON.parse(e.data); } catch { return; }
+            if (d.type === 'result') {
+                found++;
+                const url = d.url || '';
+                _qsData.sherlock_profiles.push(url);
+                const platform = url.replace(/https?:\/\/(www\.)?/,'').split('/')[0];
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${_qsEsc(platform)}</td><td style="font-size:.76rem;"><a href="${_qsEsc(url)}" target="_blank" style="color:var(--navy);">${_qsEsc(url)}</a></td>`;
+                tbody.appendChild(tr);
+                loading.style.display = 'none'; table.style.display = '';
+                checked = d.checked || checked + 1;
+                pb.style.width = `${Math.min(100, (checked / 300) * 100)}%`;
+            } else if (d.type === 'progress') {
+                checked = d.checked || checked;
+                pb.style.width = `${Math.min(100, (checked / 300) * 100)}%`;
+            } else if (d.type === 'complete') {
+                pb.style.width = '100%'; loading.style.display = 'none';
+                if (found === 0) document.getElementById('qsr-sherlock-empty').style.display = '';
+                status.textContent = `${found} found`; status.className = found > 0 ? 'badge bg-success' : 'badge bg-secondary';
+                es.close(); _qsDone();
+            } else if (d.type === 'error') {
+                loading.style.display = 'none'; status.textContent = 'Error'; status.className = 'badge bg-danger';
+                es.close(); _qsDone();
+            }
+        };
+        es.onerror = function() { loading.style.display='none'; status.textContent='Error'; status.className='badge bg-danger'; es.close(); _qsDone(); };
+    }
+
+    /* ── Maigret ── */
+    function _qsStartMaigret(username) {
+        const es = new EventSource(`/api/stream/maigret?username=${encodeURIComponent(username)}`);
+        _qsEs.maigret = es;
+        const tbody = document.getElementById('qsr-maigret-tbody');
+        const table = document.getElementById('qsr-maigret-table');
+        const loading = document.getElementById('qsr-maigret-loading');
+        const pb = document.getElementById('qsr-maigret-pb');
+        const status = document.getElementById('qsr-maigret-status');
+        let found = 0, checked = 0;
+
+        es.onmessage = function(e) {
+            let d; try { d = JSON.parse(e.data); } catch { return; }
+            if (d.type === 'result') {
+                found++;
+                const url = d.url || '';
+                _qsData.maigret_profiles.push(url);
+                const platform = url.replace(/https?:\/\/(www\.)?/,'').split('/')[0];
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${_qsEsc(platform)}</td><td style="font-size:.76rem;"><a href="${_qsEsc(url)}" target="_blank" style="color:var(--navy);">${_qsEsc(url)}</a></td>`;
+                tbody.appendChild(tr);
+                loading.style.display = 'none'; table.style.display = '';
+                checked = d.checked || checked + 1;
+                pb.style.width = `${Math.min(100, (checked / 500) * 100)}%`;
+            } else if (d.type === 'progress') {
+                checked = d.checked || checked;
+                pb.style.width = `${Math.min(100, (checked / 500) * 100)}%`;
+            } else if (d.type === 'complete') {
+                pb.style.width = '100%'; loading.style.display = 'none';
+                if (found === 0) document.getElementById('qsr-maigret-empty').style.display = '';
+                status.textContent = `${found} found`; status.className = found > 0 ? 'badge bg-success' : 'badge bg-secondary';
+                es.close(); _qsDone();
+            } else if (d.type === 'error') {
+                loading.style.display = 'none'; status.textContent = 'Error'; status.className = 'badge bg-danger';
+                es.close(); _qsDone();
+            }
+        };
+        es.onerror = function() { loading.style.display='none'; status.textContent='Error'; status.className='badge bg-danger'; es.close(); _qsDone(); };
+    }
+
+    /* ── User-Scanner Username ── */
+    function _qsStartUsUser(username) {
+        const es = new EventSource(`/api/stream/scan?type=username&query=${encodeURIComponent(username)}`);
+        _qsEs.useUser = es;
+        const tbody = document.getElementById('qsr-usu-tbody');
+        const table = document.getElementById('qsr-usu-table');
+        const loading = document.getElementById('qsr-usu-loading');
+        const pb = document.getElementById('qsr-usu-pb');
+        const status = document.getElementById('qsr-usu-status');
+        let found = 0;
+
+        es.onmessage = function(e) {
+            let d; try { d = JSON.parse(e.data); } catch { return; }
+            if (d.type === 'result') {
+                const r = d.data || {};
+                if (r.found) {
+                    found++;
+                    _qsData.user_scanner_username.push({ platform: r.platform, url: r.url, category: r.category, status: r.status });
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `<td>${_qsEsc(r.platform||'')}</td><td>${_qsEsc(r.category||'')}</td><td><span class="qsr-badge-found">Found</span></td>`;
+                    tbody.appendChild(tr);
+                    loading.style.display = 'none'; table.style.display = '';
+                }
+                pb.style.width = `${Math.min(100, ((d.checked_count||0) / 195) * 100)}%`;
+            } else if (d.type === 'progress') {
+                pb.style.width = `${Math.min(100, ((d.checked_count||0) / 195) * 100)}%`;
+            } else if (d.type === 'complete') {
+                pb.style.width = '100%'; loading.style.display = 'none';
+                if (found === 0) document.getElementById('qsr-usu-empty').style.display = '';
+                status.textContent = `${found} found`; status.className = found > 0 ? 'badge bg-success' : 'badge bg-secondary';
+                es.close(); _qsDone();
+            } else if (d.type === 'error') {
+                loading.style.display = 'none'; status.textContent = 'Error'; status.className = 'badge bg-danger';
+                es.close(); _qsDone();
+            }
+        };
+        es.onerror = function() { loading.style.display='none'; status.textContent='Error'; status.className='badge bg-danger'; es.close(); _qsDone(); };
+    }
+
+    /* ── Phone ── */
+    function _qsStartPhone(phone) {
+        fetch(`/api/results/phone?phone=${encodeURIComponent(phone)}`)
+            .then(r => r.json())
+            .then(d => {
+                _qsData.phone_result = d;
+                const body = document.getElementById('qsr-phone-body');
+                const status = document.getElementById('qsr-phone-status');
+                if (!d.valid) {
+                    body.innerHTML = `<div class="alert alert-danger mb-0" style="font-size:.82rem;">${_qsEsc(d.error||'Invalid phone number.')}</div>`;
+                    status.textContent = 'Invalid'; status.className = 'badge bg-danger';
+                    _qsDone(); return;
+                }
+                status.textContent = 'Valid'; status.className = 'badge bg-success';
+                const kvItems = [
+                    { label:'E.164 Format',    value: d.e164||'—' },
+                    { label:'International',    value: d.international||'—' },
+                    { label:'National',         value: d.national||'—' },
+                    { label:'Region / Country', value: d.region||'—' },
+                    { label:'Carrier',          value: d.carrier||'—' },
+                    { label:'Number Type',      value: d.number_type||'—' },
+                    { label:'Possible',         value: d.possible ? 'Yes' : 'No' },
+                    { label:'Timezone(s)',       value: (d.timezones||[]).join(', ')||'—' },
+                ];
+                const colors = ['#062952','#0d6e4f','#7c3aed','#b45309','#c2410c','#0e7490'];
+                let html = `<div class="qsr-kv-grid">${kvItems.map(kv=>`<div class="qsr-kv-item"><div class="qsr-kv-label">${kv.label}</div><div class="qsr-kv-value">${_qsEsc(kv.value)}</div></div>`).join('')}</div>`;
+                const pivots = d.search_links || [];
+                if (pivots.length) {
+                    html += `<div style="font-size:.7rem;font-weight:700;color:#6b7a99;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.4rem;">Search Pivots</div>`;
+                    html += `<div class="qsr-pivot-row">${pivots.map((p,i)=>`<a href="${_qsEsc(p.url)}" target="_blank" class="qsr-pivot-btn" style="background:${colors[i%colors.length]};"><i class="bi bi-box-arrow-up-right"></i>${_qsEsc(p.name)}</a>`).join('')}</div>`;
+                }
+                body.innerHTML = html;
+                _qsDone();
+            })
+            .catch(() => {
+                document.getElementById('qsr-phone-body').innerHTML = '<small class="text-danger">Failed to analyze phone number.</small>';
+                document.getElementById('qsr-phone-status').textContent = 'Error'; document.getElementById('qsr-phone-status').className = 'badge bg-danger';
+                _qsDone();
+            });
+    }
+
+    /* ── Download PDF ── */
+    function downloadQsReport() {
+        const btn = event.currentTarget;
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Generating…';
+        btn.disabled = true;
+        fetch('/api/export/dashboard-pdf', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(_qsData)
+        })
+        .then(r => { if (!r.ok) throw new Error('PDF generation failed'); return r.blob(); })
+        .then(blob => {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = `osint_report_${Date.now()}.pdf`;
+            document.body.appendChild(a); a.click();
+            document.body.removeChild(a); URL.revokeObjectURL(url);
+            btn.innerHTML = orig; btn.disabled = false;
+        })
+        .catch(err => { alert('PDF download failed: ' + err.message); btn.innerHTML = orig; btn.disabled = false; });
+    }
+
+    function runWithSelectedTools() {
+        if (!_currentCategory) return;
+        const def = TOOL_DEFS[_currentCategory];
+        const inputEl = document.getElementById(def.inputId);
+        const query = inputEl ? inputEl.value.trim() : '';
+
+        const selected = Array.from(
+            document.querySelectorAll('#drawer-body .drawer-tool-item input:checked')
+        ).map(cb => cb.closest('.drawer-tool-item').dataset.toolId);
+
+        const url = new URL(def.target, window.location.origin);
+        if (query) {
+            const paramName = _currentCategory === 'email' ? 'email'
+                            : _currentCategory === 'username' ? 'username' : 'phone';
+            url.searchParams.set(paramName, query);
+        }
+        selected.forEach(t => url.searchParams.append('tools', t));
+
+        closeDrawer();
+        window.location.href = url.toString();
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block title %}Other Links — OSINT Resource Directory{% endblock %}
+
+{% block extra_css %}
+.filter-bar { position: sticky; top: 0; z-index: 100; background: var(--surface); padding: 0.75rem 0; border-bottom: 1px solid #d3deef; }
+.filter-btn { border: 1px solid #9eb3d2; border-radius: 999px; padding: 0.3rem 1rem; font-size: 0.82rem; font-weight: 600; background: #fff; color: #062952; cursor: pointer; transition: all .15s; }
+.filter-btn:hover, .filter-btn.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+.cat-section.hidden { display: none; }
+.cat-header { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #62748e; border-bottom: 2px solid #d3deef; padding-bottom: 0.4rem; margin-bottom: 1rem; }
+.tool-card { background: #fff; border: 1px solid #d3deef; border-radius: 12px; padding: 1rem 1.1rem; height: 100%; transition: box-shadow .15s; }
+.tool-card:hover { box-shadow: 0 6px 20px rgba(6,41,82,.1); }
+.tc-title { font-weight: 700; color: #062952; font-size: 0.97rem; }
+.tc-desc { font-size: 0.83rem; color: #4a5568; margin: 0.3rem 0 0.7rem; line-height: 1.4; }
+.badge-free { background: #e6f5ea; color: #1a7a3a; border: 1px solid #b7e5c6; border-radius: 999px; padding: 0.15rem 0.6rem; font-size: 0.72rem; font-weight: 700; white-space: nowrap; }
+.badge-paid { background: #fff3cd; color: #7d5a00; border: 1px solid #ffd97d; border-radius: 999px; padding: 0.15rem 0.6rem; font-size: 0.72rem; font-weight: 700; white-space: nowrap; }
+.badge-freepaid { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; border-radius: 999px; padding: 0.15rem 0.6rem; font-size: 0.72rem; font-weight: 700; white-space: nowrap; }
+.add-form-wrap { background: #f8fbff; border: 1px solid #d3deef; border-radius: 12px; padding: 1.2rem 1.4rem; }
+{% endblock %}
+
+{% block content %}
+<main class="container my-4">
+
+    {% if error %}
+    <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
+        {{ error }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
+    {% if success %}
+    <div class="alert alert-success alert-dismissible fade show mb-3" role="alert">
+        {{ success }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
+
+    <!-- Page header -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h1 class="h4 fw-bold mb-0" style="color:var(--navy)">Other Links</h1>
+            <p class="text-muted mb-0" style="font-size:0.88rem">
+                OSINT &amp; Cybersecurity Resource Directory &mdash;
+                {{ links|length }} tools across {{ categories|length }} categories
+            </p>
+        </div>
+        {% if police_role == "admin" %}
+        <button class="btn btn-sm btn-intel" type="button" data-bs-toggle="collapse" data-bs-target="#addForm">
+            + Add Link
+        </button>
+        {% endif %}
+    </div>
+
+    <!-- Admin add form (collapsible) -->
+    {% if police_role == "admin" %}
+    <div class="collapse mb-3" id="addForm">
+        <div class="add-form-wrap">
+            <h2 class="h6 fw-bold mb-3" style="color:var(--navy)">Add New Resource Link</h2>
+            <form method="POST">
+                <div class="row g-2">
+                    <div class="col-md-3">
+                        <label class="form-label mb-1" style="font-size:.82rem">Tool / Resource Name</label>
+                        <input type="text" name="title" class="form-control input-control" placeholder="e.g. VirusTotal" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label mb-1" style="font-size:.82rem">Website URL</label>
+                        <input type="url" name="url" class="form-control input-control" placeholder="https://..." required>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label mb-1" style="font-size:.82rem">Category</label>
+                        <select name="category" class="form-select input-control" required>
+                            <option value="" disabled selected>Select…</option>
+                            {% for cat in categories %}
+                            <option value="{{ cat }}">{{ cat }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label mb-1" style="font-size:.82rem">Free / Paid</label>
+                        <select name="free_paid" class="form-select input-control">
+                            <option value="Free">Free</option>
+                            <option value="Paid">Paid</option>
+                            <option value="Free/Paid">Free/Paid</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-intel w-100">Add</button>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label mb-1" style="font-size:.82rem">
+                            Short Description <span class="text-muted">(optional)</span>
+                        </label>
+                        <input type="text" name="description" class="form-control input-control"
+                               placeholder="One-line description of what this tool does">
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Category filter bar -->
+    <div class="filter-bar mb-4">
+        <div class="d-flex flex-wrap gap-2">
+            <button class="filter-btn active" data-cat="all">
+                All <span class="ms-1 text-muted fw-normal">({{ links|length }})</span>
+            </button>
+            {% for cat in categories %}
+            {% if grouped[cat] %}
+            <button class="filter-btn" data-cat="{{ cat }}">
+                {{ cat }} <span class="ms-1 text-muted fw-normal">({{ grouped[cat]|length }})</span>
+            </button>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Link sections by category -->
+    {% for cat in categories %}
+    {% if grouped[cat] %}
+    <div class="cat-section mb-5" data-section="{{ cat }}">
+        <div class="cat-header">{{ cat }}</div>
+        <div class="row g-3">
+            {% for link in grouped[cat] %}
+            <div class="col-md-6 col-lg-4">
+                <div class="tool-card d-flex flex-column">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <span class="tc-title">{{ link.title }}</span>
+                        {% if link.get('free_paid') == 'Paid' %}
+                            <span class="badge-paid ms-2">Paid</span>
+                        {% elif link.get('free_paid') == 'Free/Paid' %}
+                            <span class="badge-freepaid ms-2">Free/Paid</span>
+                        {% else %}
+                            <span class="badge-free ms-2">Free</span>
+                        {% endif %}
+                    </div>
+                    {% if link.get('description') %}
+                    <p class="tc-desc mt-1">{{ link.description }}</p>
+                    {% else %}
+                    <p class="tc-desc mt-1 text-muted fst-italic">No description provided.</p>
+                    {% endif %}
+                    <div class="mt-auto d-flex justify-content-between align-items-center pt-2 border-top">
+                        <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer"
+                           class="btn btn-sm btn-outline-primary" style="font-size:.8rem;border-radius:8px;">
+                            Visit Tool ↗
+                        </a>
+                        {% if police_role == "admin" %}
+                        <form method="POST" class="ms-2 mb-0">
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="link_index" value="{{ link._idx }}">
+                            <button type="submit" class="btn btn-delete"
+                                    onclick="return confirm('Delete {{ link.title | e }}?')">Delete</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+
+    {% if not links %}
+    <div class="alert alert-info">
+        No resource links have been added yet.
+        {% if police_role == "admin" %}Use the Add Link button above.{% endif %}
+    </div>
+    {% endif %}
+
+</main>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    const btns = document.querySelectorAll('.filter-btn');
+    const sections = document.querySelectorAll('.cat-section');
+    btns.forEach(btn => {
+        btn.addEventListener('click', function () {
+            const cat = this.dataset.cat;
+            btns.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            sections.forEach(sec => {
+                if (cat === 'all' || sec.dataset.section === cat) {
+                    sec.classList.remove('hidden');
+                } else {
+                    sec.classList.add('hidden');
+                }
+            });
+        });
+    });
+})();
+</script>
+{% endblock %}
